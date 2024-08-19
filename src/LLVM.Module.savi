@@ -1,0 +1,23 @@
+:struct LLVM.Module
+  :let _ptr _FFI.ModulePtr
+  :new _from_ptr(@_ptr)
+
+  :fun ref add_function(name String, type LLVM.Type.Function)
+    _FFI.add_function(@_ptr, name.cstring, type)
+
+  :fun ref add_global(type LLVM.Type, name String = "")
+    _FFI.add_global(@_ptr, type, name.cstring)
+
+  :fun ref add_global_with_value(value LLVM.Value, name String = "")
+    g = _FFI.add_global(@_ptr, value.type, name.cstring)
+    g.initializer = value
+    g
+
+  :fun print_to_file!(filename String) None
+    error = CPointer(U8).null
+    is_error = _FFI.print_module_to_file(
+      @_ptr, filename.cstring, stack_address_of_variable error
+    )
+    if is_error.bool (
+      error! LLVM.Error.WritingFile.new(filename, _FFI.string(error))
+    )

@@ -1,0 +1,2048 @@
+:ffi_link_lib "LLVM-18.1.8"
+
+:module _FFI.Cast(A, B)
+  :: An FFI-only utility function for bit-casting type A to B.
+  ::
+  :: This is only meant to be used for pointer types, and will
+  :: fail badly if either A or B is not an ABI pointer type
+  ::
+  :: Obviously this utility function makes it easy to break
+  :: memory safety, so it should be used with great care.
+  ::
+  :: Being private, It is only accessible from within the core library,
+  :: though other libraries can set up similar mechanisms as well,
+  :: provided that they are explicitly allowed by the root manifest to use FFI.
+  :ffi pointer(input A) B
+    :foreign_name savi_cast_pointer
+
+:alias _FFI.ContextPtr: CPointer(_FFI.Context)
+:struct _FFI.Context
+
+:alias _FFI.ModulePtr: CPointer(_FFI.Module)
+:struct _FFI.Module
+
+:enum _FFI.Bool
+  :bit_width 1
+  :member False 0
+  :member True 1
+  :fun bool: @ == _FFI.Bool.True
+  :fun non from(bool Bool): if bool (_FFI.Bool.True | _FFI.Bool.False)
+
+:module _FFI
+  :ffi strlen(cstring CPointer(U8)) USize
+  :fun string(cstring CPointer(U8))
+    strlen = @strlen(cstring)
+    cstring_iso = _FFI.Cast(CPointer(U8), CPointer(U8)'iso).pointer(cstring)
+    String.val_from_cpointer(--cstring_iso, strlen, strlen)
+  :fun string_copy_dispose(cstring CPointer(U8))
+    string = @string(cstring).clone
+    @dispose_message(cstring)
+    string
+
+  ///
+  // Core
+  // <https://llvm.org/docs/doxygen/group__LLVMCCore.html>
+  //
+
+  :ffi dispose_message(message CPointer(U8)) None
+    :foreign_name LLVMDisposeMessage
+
+  ///
+  // Contexts
+  // <https://llvm.org/doxygen/group__LLVMCCoreContext.html>
+  //
+
+  :: Create a new context.
+  ::
+  :: Every call to this function should be paired with a call to
+  :: LLVMContextDispose() or the context will leak memory.
+  :ffi context_create _FFI.ContextPtr
+    :foreign_name LLVMContextCreate
+
+  :: Destroy a context instance.
+  ::
+  :: This should be called for every call to LLVMContextCreate()
+  :: or memory will be leaked.
+  :ffi context_dispose(context _FFI.ContextPtr) None
+    :foreign_name LLVMContextDispose
+
+  ///
+  // Modules
+  // <https://llvm.org/doxygen/group__LLVMCCoreModule.html>
+  //
+
+  :: Create a new, empty module in a specific context.
+  ::
+  :: Every invocation should be paired with LLVMDisposeModule()
+  :: or memory will be leaked.
+  :ffi module_create_with_name_in_context(
+    module_id CPointer(U8)
+    context _FFI.ContextPtr
+  ) _FFI.ModulePtr
+    :foreign_name LLVMModuleCreateWithNameInContext
+
+  :: Return an exact copy of the specified module.
+  :ffi clone_module(module _FFI.ModulePtr) _FFI.ModulePtr
+    :foreign_name LLVMCloneModule
+
+  :: Destroy a module instance.
+  ::
+  :: This must be called for every created module or memory will be leaked.
+  :ffi dispose_module(module _FFI.ModulePtr) None
+    :foreign_name LLVMDisposeModule
+
+  :: Obtain the identifier of a module.
+  :ffi get_module_identifier(
+    module _FFI.ModulePtr
+    length_out CPointer(USize)
+  ) CPointer(U8)
+    :foreign_name LLVMGetModuleIdentifier
+
+  :: Set the identifier of a module to a given string with given length.
+  :ffi set_module_identifier(
+    module _FFI.ModulePtr
+    ident CPointer(U8)
+    length USize
+  ) None
+    :foreign_name LLVMSetModuleIdentifier
+
+  :: Obtain the module's original source file name.
+  :ffi get_source_file_name(
+    module _FFI.ModulePtr
+    length_out CPointer(USize)
+  ) CPointer(U8)
+    :foreign_name LLVMGetSourceFileName
+
+  :: Set the module's original source file name.
+  :ffi set_source_file_name(
+    module _FFI.ModulePtr
+    name CPointer(U8)
+    length USize
+  ) None
+    :foreign_name LLVMSetSourceFileName
+
+  :: Obtain the data layout for a module.
+  :ffi get_data_layout_str(module _FFI.ModulePtr) CPointer(U8)
+    :foreign_name LLVMGetDataLayoutStr
+
+  :: Set the data layout for a module.
+  :ffi set_data_layout(module _FFI.ModulePtr, data_layout CPointer(U8)) None
+    :foreign_name LLVMSetDataLayout
+
+  :: Obtain the target triple for a module.
+  :ffi get_target(module _FFI.ModulePtr) CPointer(U8)
+    :foreign_name LLVMGetTarget
+
+  :: Set the target triple for a module.
+  :ffi set_target(module _FFI.ModulePtr, triple CPointer(U8)) None
+    :foreign_name LLVMSetTarget
+
+  :: Print a representation of a module to a file.
+  :ffi print_module_to_file(
+    module _FFI.ModulePtr
+    filename CPointer(U8)
+    error_out CPointer(CPointer(U8))
+  ) _FFI.Bool
+    :foreign_name LLVMPrintModuleToFile
+
+  :: Return a string representation of the module.
+  :ffi print_module_to_string(module _FFI.ModulePtr) CPointer(U8)
+    :foreign_name LLVMPrintModuleToString
+
+  :: Get inline assembly for a module.
+  :ffi get_module_inline_asm(module _FFI.ModulePtr) CPointer(U8)
+    :foreign_name LLVMGetModuleInlineAsm
+
+  :: Set inline assembly for a module.
+  :ffi set_module_inline_asm2(
+    module _FFI.ModulePtr
+    asm_string CPointer(U8)
+    length USize
+  ) None
+    :foreign_name LLVMSetModuleInlineAsm2
+
+  :: Append inline assembly to a module.
+  :ffi append_module_inline_asm2(
+    module _FFI.ModulePtr
+    asm_string CPointer(U8)
+    length USize
+  ) None
+    :foreign_name LLVMAppendModuleInlineAsm2
+
+  :: Create the specified uniqued inline asm string.
+  :ffi get_inline_asm(
+    type LLVM.Type
+    asm_string CPointer(U8)
+    asm_string_size USize
+    constraints CPointer(U8)
+    constraints_size USize
+    has_side_effects _FFI.Bool
+    is_align_stack _FFI.Bool
+    dialect LLVM.InlineAsm.Dialect
+    can_throw _FFI.Bool
+  ) CPointer(U8)
+    :foreign_name LLVMGetInlineAsm
+
+  :: Get the template string used for an inline assembly snippet.
+  :ffi get_inline_asm_asm_string(
+    inline_asm_value LLVM.Value
+    length_out CPointer(USize)
+  ) CPointer(U8)
+    :foreign_name LLVMGetInlineAsmAsmString
+
+  :: Get the raw constraint string for an inline assembly snippet.
+  :ffi get_inline_asm_constraint_string(
+    inline_asm_value LLVM.Value
+    length_out CPointer(USize)
+  ) CPointer(U8)
+    :foreign_name LLVMGetInlineAsmConstraintString
+
+  :: Get the dialect used by the inline asm snippet.
+  :ffi get_inline_asm_dialect(
+    inline_asm_value LLVM.Value
+  ) LLVM.InlineAsm.Dialect
+    :foreign_name LLVMGetInlineAsmDialect
+
+  :: Get the function type of the inline assembly snippet.
+  :ffi get_inline_asm_function_type(
+    inline_asm_value LLVM.Value
+  ) LLVM.Type
+    :foreign_name LLVMGetInlineAsmFunctionType
+
+  :: Get if the inline asm snippet has side effects.
+  :ffi get_inline_asm_has_side_effects(
+    inline_asm_value LLVM.Value
+  ) _FFI.Bool
+    :foreign_name LLVMGetInlineAsmHasSideEffects
+
+  :: Get if the inline asm snippet needs an aligned stack.
+  :ffi get_inline_asm_needs_aligned_stack(
+    inline_asm_value LLVM.Value
+  ) _FFI.Bool
+    :foreign_name LLVMGetInlineAsmNeedsAlignedStack
+
+  :: Get if the inline asm snippet needs an aligned stack.
+  :ffi get_inline_asm_can_unwind(
+    inline_asm_value LLVM.Value
+  ) _FFI.Bool
+    :foreign_name LLVMGetInlineAsmCanUnwind
+
+  :: Obtain the context to which this module is associated.
+  :ffi get_module_context(
+    module _FFI.ModulePtr
+  ) _FFI.ContextPtr
+    :foreign_name LLVMGetModuleContext
+
+  :: Obtain an iterator to the first NamedMDNode in a Module.
+  :ffi get_first_named_metadata(
+    module _FFI.ModulePtr
+  ) LLVM.NamedMDNode
+    :foreign_name LLVMGetFirstNamedMetadata
+
+  :: Obtain an iterator to the last NamedMDNode in a Module.
+  :ffi get_last_named_metadata(
+    module _FFI.ModulePtr
+  ) LLVM.NamedMDNode
+    :foreign_name LLVMGetLastNamedMetadata
+
+  :: Advance a NamedMDNode iterator to the next NamedMDNode.
+  :ffi get_next_named_metadata(
+    node LLVM.NamedMDNode
+  ) LLVM.NamedMDNode
+    :foreign_name LLVMGetNextNamedMetadata
+
+  :: Decrement a NamedMDNode iterator to the previous NamedMDNode.
+  :ffi get_previous_named_metadata(
+    node LLVM.NamedMDNode
+  ) LLVM.NamedMDNode
+    :foreign_name LLVMGetPreviousNamedMetadata
+
+  :: Retrieve a NamedMDNode with the given name,
+  :: returning NULL if no such node exists.
+  :ffi get_named_metadata(
+    module _FFI.ModulePtr
+    name CPointer(U8)
+    name_length USize
+  ) LLVM.NamedMDNode
+    :foreign_name LLVMGetNamedMetadata
+
+  :: Retrieve a NamedMDNode with the given name,
+  :: creating a new node if no such node exists.
+  :ffi get_or_insert_named_metadata(
+    module _FFI.ModulePtr
+    name CPointer(U8)
+    name_length USize
+  ) LLVM.NamedMDNode
+    :foreign_name LLVMGetOrInsertNamedMetadata
+
+  :: Retrieve the name of a NamedMDNode.
+  :ffi get_named_metadata_name(
+    node LLVM.NamedMDNode
+    length_out CPointer(USize)
+  ) CPointer(U8)
+    :foreign_name LLVMGetNamedMetadataName
+
+  :: Obtain the number of operands for named metadata in a module.
+  :ffi get_named_metadata_num_operands(
+    module _FFI.ModulePtr
+    name CPointer(U8)
+  ) U32
+    :foreign_name LLVMGetNamedMetadataNumOperands
+
+  :: Obtain the named metadata operands for a module.
+  :ffi get_named_metadata_operands(
+    module _FFI.ModulePtr
+    name CPointer(U8)
+    dest CPointer(LLVM.Value)
+  ) None
+    :foreign_name LLVMGetNamedMetadataOperands
+
+  :: Add an operand to named metadata.
+  :ffi add_named_metadata_operand(
+    module _FFI.ModulePtr
+    name CPointer(U8)
+    operand LLVM.Value
+  ) None
+    :foreign_name LLVMAddNamedMetadataOperand
+
+  :: Add a function to a module under a specified name.
+  :ffi add_function(
+    module _FFI.ModulePtr
+    name CPointer(U8)
+    function_type LLVM.Type.Function'box
+  ) LLVM.Function
+    :foreign_name LLVMAddFunction
+
+  :: Obtain a function by name from a module.
+  :ffi get_named_function(
+    module _FFI.ModulePtr
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMGetNamedFunction
+
+  :: Obtain an iterator to the first function in a module.
+  :ffi get_first_function(
+    module _FFI.ModulePtr
+  ) LLVM.Value
+    :foreign_name LLVMGetFirstFunction
+
+  :: Obtain an iterator to the last function in a module.
+  :ffi get_last_function(
+    module _FFI.ModulePtr
+  ) LLVM.Value
+    :foreign_name LLVMGetLastFunction
+
+  :: Advance a function iterator to the next function.
+  :ffi get_next_function(
+    function LLVM.Value
+  ) LLVM.Value
+    :foreign_name LLVMGetNextFunction
+
+  :: Decrement a function iterator to the previous function.
+  :ffi get_previous_function(
+    function LLVM.Value
+  ) LLVM.Value
+    :foreign_name LLVMGetPreviousFunction
+
+  ///
+  // Types
+  // <https://llvm.org/doxygen/group__LLVMCCoreType.html>
+  //
+
+  :: Obtain the enumerated type of a Type instance.
+  :ffi get_type_kind(type LLVM.Type'box) LLVM.Type.Kind
+    :foreign_name LLVMGetTypeKind
+
+  :: Whether the type has a known size.
+  :ffi type_is_sized(type LLVM.Type'box) _FFI.Bool
+    :foreign_name LLVMTypeIsSized
+
+  :: Obtain the context to which this type instance is associated.
+  :ffi get_type_context(type LLVM.Type'box) _FFI.ContextPtr
+    :foreign_name LLVMGetTypeContext
+
+  :: Return a string representation of the type.
+  :ffi print_type_to_string(type LLVM.Type'box) CPointer(U8)
+    :foreign_name LLVMPrintTypeToString
+
+  ///
+  // Integer Types
+  // <https://llvm.org/doxygen/group__LLVMCCoreTypeInt.html>
+  //
+
+  :: Obtain an integer type from a context with a width of 1 bit.
+  :ffi int1_type_in_context(context _FFI.ContextPtr) LLVM.Type.Integer
+    :foreign_name LLVMInt1TypeInContext
+
+  :: Obtain an integer type from a context with a width of 8 bits.
+  :ffi int8_type_in_context(context _FFI.ContextPtr) LLVM.Type.Integer
+    :foreign_name LLVMInt8TypeInContext
+
+  :: Obtain an integer type from a context with a width of 16 bits.
+  :ffi int16_type_in_context(context _FFI.ContextPtr) LLVM.Type.Integer
+    :foreign_name LLVMInt16TypeInContext
+
+  :: Obtain an integer type from a context with a width of 32 bits.
+  :ffi int32_type_in_context(context _FFI.ContextPtr) LLVM.Type.Integer
+    :foreign_name LLVMInt32TypeInContext
+
+  :: Obtain an integer type from a context with a width of 64 bits.
+  :ffi int64_type_in_context(context _FFI.ContextPtr) LLVM.Type.Integer
+    :foreign_name LLVMInt64TypeInContext
+
+  :: Obtain an integer type from a context with a width of 128 bits.
+  :ffi int128_type_in_context(context _FFI.ContextPtr) LLVM.Type.Integer
+    :foreign_name LLVMInt128TypeInContext
+
+  :: Obtain an integer type from a context with a custom bit width.
+  :ffi int_type_in_context(context _FFI.ContextPtr, bit_width U32) LLVM.Type.Integer
+    :foreign_name LLVMIntTypeInContext
+
+  :: Get the number of bits in an integer type.
+  :ffi get_int_type_width(integer_type LLVM.Type.Integer'box) U32
+    :foreign_name LLVMGetIntTypeWidth
+
+  ///
+  // Floating Point Types
+  // <https://llvm.org/docs/doxygen/group__LLVMCCoreTypeFloat.html>
+  //
+
+  :: Obtain a 16-bit floating point type from a context.
+  :ffi half_type_in_context(context _FFI.ContextPtr) LLVM.Type.FloatingPoint
+    :foreign_name LLVMHalfTypeInContext
+
+  :: Obtain a 16-bit brain floating point type from a context.
+  :ffi b_float_type_in_context(context _FFI.ContextPtr) LLVM.Type.FloatingPoint
+    :foreign_name LLVMBFloatTypeInContext
+
+  :: Obtain a 32-bit floating point type from a context.
+  :ffi float_type_in_context(context _FFI.ContextPtr) LLVM.Type.FloatingPoint
+    :foreign_name LLVMFloatTypeInContext
+
+  :: Obtain a 64-bit floating point type from a context.
+  :ffi double_type_in_context(context _FFI.ContextPtr) LLVM.Type.FloatingPoint
+    :foreign_name LLVMDoubleTypeInContext
+
+  :: Obtain a 80-bit floating point type (X87) from a context.
+  :ffi x86fp80_type_in_context(context _FFI.ContextPtr) LLVM.Type.FloatingPoint
+    :foreign_name LLVMX86FP80TypeInContext
+
+  :: Obtain a 128-bit floating point type (112-bit mantissa) from a context.
+  :ffi fp128_type_in_context(context _FFI.ContextPtr) LLVM.Type.FloatingPoint
+    :foreign_name LLVMFP128TypeInContext
+
+  :: Obtain a 128-bit floating point type (two 64-bits) from a context.
+  :ffi ppcfp128_type_in_context(context _FFI.ContextPtr) LLVM.Type.FloatingPoint
+    :foreign_name LLVMPPCFP128TypeInContext
+
+  ///
+  // Sequential Types
+  // <https://llvm.org/docs/doxygen/group__LLVMCCoreTypeSequential.html>
+  //
+
+  :: Obtain the element type of an array type.
+  :ffi get_array_element_type(array_type LLVM.Type.Array'box) LLVM.Type'box
+    :foreign_name LLVMGetElementType
+
+  :: Obtain the element type of a vector type.
+  :ffi get_vector_element_type(vector_type LLVM.Type.Vector'box) LLVM.Type'box
+    :foreign_name LLVMGetElementType
+
+  :: Create a fixed size array type that refers to a specific type.
+  :ffi array_type2(
+    element_type LLVM.Type'box
+    element_count U64
+  ) LLVM.Type.Array
+    :foreign_name LLVMArrayType2
+
+  :: Obtain the length of an array type.
+  :ffi get_array_length_2(array_type LLVM.Type.Array'box) U64
+    :foreign_name LLVMGetArrayLength2
+
+  :: Create an opaque pointer type in a context.
+  :ffi pointer_type_in_context(
+    context _FFI.ContextPtr
+    address_space U32
+  ) LLVM.Type.Pointer
+    :foreign_name LLVMPointerTypeInContext
+
+  :: Obtain the address space of a pointer type.
+  :ffi get_pointer_address_space(pointer_type LLVM.Type.Pointer'box) U32
+    :foreign_name LLVMGetPointerAddressSpace
+
+  :: Create a vector type that contains a defined type and has
+  :: a specific number of elements.
+  :ffi vector_type(
+    element_type LLVM.Type'box
+    element_count U32
+  ) LLVM.Type.Vector
+    :foreign_name LLVMVectorType
+
+  :: Create a vector type that contains a defined type and has a scalable
+  :: number of elements.
+  :ffi scalable_vector_type(
+    element_type LLVM.Type'box
+  ) LLVM.Type.Vector
+    :foreign_name LLVMScalableVectorType
+
+  :: Obtain the (possibly scalable) number of elements in a vector type.
+  :ffi get_vector_size(vector_type LLVM.Type.Vector'box) U32
+    :foreign_name LLVMGetVectorSize
+
+  ///
+  // Structure Types
+  // <https://llvm.org/docs/doxygen/group__LLVMCCoreTypeStruct.html>
+  //
+
+  :: Create a new structure type in a context.
+  ::
+  :: A structure is specified by a list of inner elements/types and
+  :: whether these can be packed together.
+  :ffi struct_type_in_context(
+    context _FFI.ContextPtr
+    element_types CPointer(LLVM.Type'box)
+    element_count U32
+    is_packed _FFI.Bool
+  ) LLVM.Type.Struct
+    :foreign_name LLVMStructTypeInContext
+
+  :: Create an empty structure in a context having a specified name.
+  :ffi struct_create_named(
+    context _FFI.ContextPtr
+    name CPointer(U8)
+  ) LLVM.Type.Struct
+    :foreign_name LLVMStructCreateNamed
+
+  :: Obtain the name of a structure.
+  :ffi get_struct_name(struct_type LLVM.Type.Struct'box) CPointer(U8)
+    :foreign_name LLVMGetStructName
+
+  :: Set the contents of a structure type.
+  :ffi struct_set_body(
+    struct_type LLVM.Type.Struct
+    element_types CPointer(LLVM.Type'box)
+    element_count U32
+    is_packed _FFI.Bool
+  ) None
+    :foreign_name LLVMStructSetBody
+
+  :: Get the number of elements defined inside the structure.
+  :ffi count_struct_element_types(struct_type LLVM.Type.Struct'box) U32
+    :foreign_name LLVMCountStructElementTypes
+
+  :: Get the elements within a structure.
+  ::
+  :: The function is passed the address of a pre-allocated array of
+  :: LLVMTypePtr at least LLVMCountStructElementTypes() long. After invocation,
+  :: this array will be populated with the structure's elements.
+  :: The objects in the destination array will have a lifetime of the structure
+  :: type itself, which is the lifetime of the context it is contained in.
+  :ffi get_struct_element_types(
+    struct_type LLVM.Type.Struct'box
+    dest CPointer(LLVM.Type)
+  ) None
+    :foreign_name LLVMGetStructElementTypes
+
+  :: Determine whether a structure is packed.
+  :ffi is_packed_struct(struct_type LLVM.Type.Struct'box) _FFI.Bool
+    :foreign_name LLVMIsPackedStruct
+
+  :: Determine whether a structure is opaque.
+  :ffi is_opaque_struct(struct_type LLVM.Type.Struct'box) _FFI.Bool
+    :foreign_name LLVMIsOpaqueStruct
+
+  :: Determine whether a structure is literal.
+  :ffi is_literal_struct(struct_type LLVM.Type.Struct'box) _FFI.Bool
+    :foreign_name LLVMIsLiteralStruct
+
+  ///
+  // Function Types
+  // <https://llvm.org/docs/doxygen/group__LLVMCCoreTypeFunction.html>
+  //
+
+  :: Obtain a function type consisting of a specified signature.
+  ::
+  :: The function is defined as a tuple of a return Type, a list of
+  :: parameter types, and whether the function is variadic.
+  :ffi function_type(
+    return_type LLVM.Type'box
+    param_types CPointer(LLVM.Type'box)
+    param_count U32
+    is_var_arg _FFI.Bool
+  ) LLVM.Type.Function
+    :foreign_name LLVMFunctionType
+
+  :: Returns whether a function type is variadic.
+  :ffi is_function_var_arg(function_type LLVM.Type.Function'box) _FFI.Bool
+    :foreign_name LLVMIsFunctionVarArg
+
+  :: Obtain the Type this function Type returns.
+  :ffi get_return_type(function_type LLVM.Type.Function'box) LLVM.Type
+    :foreign_name LLVMGetReturnType
+
+  :: Obtain the number of parameters this function accepts.
+  :ffi count_param_types(function_type LLVM.Type.Function'box) U32
+    :foreign_name LLVMCountParamTypes
+
+  :: Obtain the types of a function's parameters.
+  ::
+  :: The Dest parameter should point to a pre-allocated array of LLVMTypePtr
+  :: at least LLVMCountParamTypes() large. On return, the first
+  :: LLVMCountParamTypes() entries in the array will be populated with
+  :: LLVMTypePtr instances.
+  :ffi get_param_types(
+    function_type LLVM.Type.Function'box
+    dest CPointer(LLVM.Type'box)
+  ) None
+    :foreign_name LLVMGetParamTypes
+
+  ///
+  // Other Types
+  // <https://llvm.org/docs/doxygen/group__LLVMCCoreTypeOther.html>
+  //
+
+  :: Create a void type in a context.
+  :ffi void_type_in_context(context _FFI.ContextPtr) LLVM.Type
+    :foreign_name LLVMVoidTypeInContext
+
+  ///
+  // Value General APIs
+  // <https://llvm.org/docs/doxygen/group__LLVMCCoreValueGeneral.html>
+  //
+
+  :: Obtain the type of a value.
+  :ffi type_of(value LLVM.Value'box) LLVM.Type
+    :foreign_name LLVMTypeOf
+
+  :: Obtain the enumerated type of a Value instance.
+  :ffi get_value_kind(value LLVM.Value'box) LLVM.Value.Kind
+    :foreign_name LLVMGetValueKind
+
+  :: Obtain the string name of a value.
+  :ffi get_value_name_2(
+    value LLVM.Value'box
+    length_out CPointer(USize)
+  ) CPointer(U8)'ref
+    :foreign_name LLVMGetValueName2
+
+  :: Set the string name of a value.
+  :ffi set_value_name_2(
+    value LLVM.Value
+    name CPointer(U8)
+    length USize
+  ) None
+    :foreign_name LLVMSetValueName2
+
+  :: Return a string representation of the value.
+  :ffi print_value_to_string(value LLVM.Value'box) CPointer(U8)
+    :foreign_name LLVMPrintValueToString
+
+  :: Replace all uses of a value with another one.
+  :ffi replace_all_uses_with(
+    old_value LLVM.Value
+    new_value LLVM.Value
+  ) None
+    :foreign_name LLVMReplaceAllUsesWith
+
+  :: Determine whether the specified value instance is constant.
+  :ffi is_constant(value LLVM.Value'box) _FFI.Bool
+    :foreign_name LLVMIsConstant
+
+  :: Determine whether a value instance is undefined.
+  :ffi is_undef(value LLVM.Value'box) _FFI.Bool
+    :foreign_name LLVMIsUndef
+
+  :: Determine whether a value instance is poison.
+  :ffi is_poison(value LLVM.Value'box) _FFI.Bool
+    :foreign_name LLVMIsPoison
+
+  ///
+  // Global Values
+  // <https://llvm.org/doxygen/group__LLVMCCoreValueConstantGlobals.html>
+  //
+
+  :ffi get_global_parent(global LLVM.Value.Global'box) _FFI.ModulePtr
+    :foreign_name LLVMGetGlobalParent
+
+  :ffi is_declaration(global LLVM.Value.Global) _FFI.Bool
+    :foreign_name LLVMIsDeclaration
+
+  :ffi get_linkage(global LLVM.Value.Global'box) LLVM.Linkage
+    :foreign_name LLVMGetLinkage
+
+  :ffi set_linkage(global LLVM.Value.Global, linkage LLVM.Linkage) None
+    :foreign_name LLVMSetLinkage
+
+  :ffi get_section(global LLVM.Value.Global'box) CPointer(U8)
+    :foreign_name LLVMGetSection
+
+  :ffi set_section(global LLVM.Value.Global, section CPointer(U8)) None
+    :foreign_name LLVMSetSection
+
+  :ffi get_visibility(global LLVM.Value.Global'box) LLVM.Visibility
+    :foreign_name LLVMGetVisibility
+
+  :ffi set_visibility(global LLVM.Value.Global, visibility LLVM.Visibility) None
+    :foreign_name LLVMSetVisibility
+
+  :ffi get_dll_storage_class(global LLVM.Value.Global'box) LLVM.DLLStorageClass
+    :foreign_name LLVMGetDLLStorageClass
+
+  :ffi set_dll_storage_class(
+    global LLVM.Value.Global
+    storage_class LLVM.DLLStorageClass
+  ) None
+
+  :: Returns the "value type" of a global value.
+  :ffi global_get_value_type(
+    global LLVM.Value.Global'box
+  ) LLVM.Type
+    :foreign_name LLVMGlobalGetValueType
+
+  :: Obtain the preferred alignment of the value.
+  :ffi get_alignment(global LLVM.Value.Global'box) U32
+    :foreign_name LLVMGetAlignment
+
+  :: Set the preferred alignment of the value.
+  :ffi set_alignment(global LLVM.Value.Global, alignment U32) None
+
+  :: Sets a metadata attachment, erasing the existing metadata attachment
+  :: if it already exists for the given kind.
+  :ffi global_set_metadata(
+    global LLVM.Value.Global
+    kind U32
+    metadata LLVM.Value
+  ) None
+    :foreign_name LLVMGlobalSetMetadata
+
+  :: Erases a metadata attachment of the given kind if it exists.
+  :ffi global_erase_metadata(
+    global LLVM.Value.Global
+    kind U32
+  ) None
+    :foreign_name LLVMGlobalEraseMetadata
+
+  :: Removes all metadata attachments from this value.
+  :ffi global_clear_metadata(global LLVM.Value.Global) None
+    :foreign_name LLVMGlobalClearMetadata
+
+  // TODO: LLVMGlobalCopyAllMetadata
+  // TODO: LLVMDisposeValueMetadataEntries
+  // TODO: LLVMValueMetadataEntriesGetKind
+  // TODO: LLVMValueMetadataEntriesGetMetadata
+
+  ///
+  // Global Variables
+  // <https://llvm.org/doxygen/group__LLVMCoreValueConstantGlobalVariable.html>
+  //
+
+  :ffi add_global(
+    module _FFI.ModulePtr
+    type LLVM.Type'box
+    name CPointer(U8)
+  ) LLVM.Value.Global.Variable
+    :foreign_name LLVMAddGlobal
+
+  :ffi add_global_in_address_space(
+    module _FFI.ModulePtr
+    type LLVM.Type'box
+    name CPointer(U8)
+    address_space U32
+  ) LLVM.Value.Global.Variable
+    :foreign_name LLVMAddGlobalInAddressSpace
+
+  :ffi get_named_global(
+    module _FFI.ModulePtr
+    name CPointer(U8)
+  ) LLVM.Value.Global.Variable
+    :foreign_name LLVMGetNamedGlobal
+
+  :ffi get_first_global(module _FFI.ModulePtr) LLVM.Value.Global.Variable
+    :foreign_name LLVMGetFirstGlobal
+
+  :ffi get_last_global(module _FFI.ModulePtr) LLVM.Value.Global.Variable
+    :foreign_name LLVMGetLastGlobal
+
+  :ffi get_next_global(
+    global LLVM.Value.Global.Variable'box
+  ) LLVM.Value.Global.Variable
+
+  :ffi get_previous_global(
+    global LLVM.Value.Global.Variable'box
+  ) LLVM.Value.Global.Variable
+
+  :ffi delete_global(global LLVM.Value.Global.Variable) None
+    :foreign_name LLVMDeleteGlobal
+
+  :ffi get_initializer(global LLVM.Value.Global.Variable'box) LLVM.Value
+    :foreign_name LLVMGetInitializer
+
+  :ffi set_initializer(
+    global LLVM.Value.Global.Variable
+    initializer LLVM.Value'box
+  ) None
+    :foreign_name LLVMSetInitializer
+
+  :ffi is_thread_local(global LLVM.Value.Global.Variable'box) _FFI.Bool
+    :foreign_name LLVMIsThreadLocal
+
+  :ffi set_thread_local(
+    global LLVM.Value.Global.Variable
+    is_thread_local _FFI.Bool
+  ) None
+    :foreign_name LLVMSetThreadLocal
+
+  :ffi is_global_constant(global LLVM.Value.Global.Variable'box) _FFI.Bool
+    :foreign_name LLVMIsGlobalConstant
+
+  :ffi set_global_constant(
+    global LLVM.Value.Global.Variable
+    is_constant _FFI.Bool
+  ) None
+    :foreign_name LLVMSetGlobalConstant
+
+  :ffi get_thread_local_mode(
+    global LLVM.Value.Global.Variable'box
+  ) LLVM.ThreadLocalMode
+    :foreign_name LLVMGetThreadLocalMode
+
+  :ffi set_thread_local_mode(
+    global LLVM.Value.Global.Variable
+    mode LLVM.ThreadLocalMode
+  ) None
+    :foreign_name LLVMSetThreadLocalMode
+
+  :ffi is_externally_initialized(
+    global LLVM.Value.Global.Variable'box
+  ) _FFI.Bool
+    :foreign_name LLVMIsExternallyInitialized
+
+  :ffi set_externally_initialized(
+    global LLVM.Value.Global.Variable
+    is_externally_initialized _FFI.Bool
+  ) None
+    :foreign_name LLVMSetExternallyInitialized
+
+  ///
+  // Scalar Constants
+  // <https://llvm.org/doxygen/group__LLVMCCoreValueConstantScalar.html>
+  //
+
+  :: Obtain a constant value for an integer type.
+  :ffi const_int(
+    int_type LLVM.Type.Integer'box
+    value U64
+    sign_extend _FFI.Bool
+  ) LLVM.Value
+    :foreign_name LLVMConstInt
+
+  :: Obtain a constant value for an integer of arbitrary precision.
+  :ffi const_int_of_arbitrary_precision(
+    int_type LLVM.Type.Integer'box
+    num_words U32
+    words CPointer(U64)
+  ) LLVM.Value
+    :foreign_name LLVMConstIntOfArbitraryPrecision
+
+  :: Obtain a constant value referring to a double floating point value.
+  :ffi const_real(
+    real_type LLVM.Type.FloatingPoint'box
+    value F64
+  ) LLVM.Value
+    :foreign_name LLVMConstReal
+
+  ///
+  // Composite Constants
+  // <https://llvm.org/doxygen/group__LLVMCCoreValueConstantComposite.html>
+  //
+
+  :: Create a ConstantDataSequential and initialize it with a string.
+  :ffi const_string_in_context(
+    context _FFI.ContextPtr
+    string CPointer(U8)
+    length U32
+    do_not_null_terminate _FFI.Bool
+  ) LLVM.Value
+    :foreign_name LLVMConstStringInContext
+
+  :: Returns true if the specified constant is an array of i8.
+  :ffi is_constant_string(value LLVM.Value'box) _FFI.Bool
+    :foreign_name LLVMIsConstantString
+
+  :: Get the given constant data sequential as a string.
+  :ffi get_as_string(value LLVM.Value'box) CPointer(U8)
+    :foreign_name LLVMGetAsString
+
+  :: Create an anonymous ConstantStruct with the specified values.
+  :ffi const_struct_in_context(
+    context _FFI.ContextPtr
+    constant_values CPointer(LLVM.Value)
+    length U32
+    packed _FFI.Bool
+  ) LLVM.Value
+    :foreign_name LLVMConstStructInContext
+
+  :: Create a ConstantArray from values.
+  :ffi const_array_2(
+    element_type LLVM.Type'box
+    constant_values CPointer(LLVM.Value'box)
+    length U64
+  ) LLVM.Value
+    :foreign_name LLVMConstArray2
+
+  :: Create a non-anonymous ConstantStruct from values.
+  :ffi const_named_struct(
+    struct_type LLVM.Type.Struct'box
+    constant_values CPointer(LLVM.Value)
+    length U32
+  ) LLVM.Value
+
+  :: Get element of a constant aggregate (struct, array or vector)
+  :: at the specified index.
+  :ffi get_aggregate_element(
+    constant_value LLVM.Value
+    index U32
+  ) LLVM.Value
+    :foreign_name LLVMGetAggregateElement
+
+  :: Create a ConstantVector from scalar constant values.
+  :ffi const_vector(
+    scalar_constant_values CPointer(LLVM.Value)
+    length U32
+  ) LLVM.Value
+    :foreign_name LLVMConstVector
+
+  // TODO: LLVMConstantPtrAuth
+
+  ///
+  // Instruction Builders
+  // <https://llvm.org/docs/doxygen/group__LLVMCCoreInstructionBuilder.html>
+  //
+
+  :: Create a new builder in a specific context.
+  ::
+  :: Every invocation should be paired with LLVMDisposeBuilder()
+  :ffi create_builder_in_context(context _FFI.ContextPtr) LLVM.Builder
+    :foreign_name LLVMCreateBuilderInContext
+
+  :: Set the builder position before Instr but after any attached debug records.
+  :ffi position_builder_before(
+    builder LLVM.Builder
+    instruction LLVM.Value
+  ) None
+    :foreign_name LLVMPositionBuilderBefore
+
+  :: Set the builder position before Instr and any attached debug records.
+  :ffi position_builder_before_instr_and_dbg_records(
+    builder LLVM.Builder
+    instruction LLVM.Value
+  ) None
+    :foreign_name LLVMPositionBuilderBeforeInstrAndDbgRecords
+
+  :: Set the builder position to append new instructions to the given block.
+  :ffi position_builder_at_end(builder LLVM.Builder, block LLVM.Block) None
+    :foreign_name LLVMPositionBuilderAtEnd
+
+  :: Get the current block where the builder is positioned.
+  :ffi get_insert_block(builder LLVM.Builder) LLVM.Block
+    :foreign_name LLVMGetInsertBlock
+
+  :ffi clear_insertion_position(builder LLVM.Builder) None
+
+  :ffi insert_into_builder(
+    builder LLVM.Builder
+    instruction LLVM.Value
+  ) None
+
+  :ffi insert_into_builder_with_name(
+    builder LLVM.Builder
+    instruction LLVM.Value
+    name CPointer(U8)
+  ) None
+
+  :: Destroy a builder instance.
+  ::
+  :: This must be called for every created builder or memory will be leaked.
+  :ffi dispose_builder(builder LLVM.Builder) None
+    :foreign_name LLVMDisposeBuilder
+
+  // TODO: more in this range, related to debug instructions
+
+  :ffi build_ret_void(builder LLVM.Builder) LLVM.Value
+    :foreign_name LLVMBuildRetVoid
+
+  :ffi build_ret(builder LLVM.Builder, value LLVM.Value) LLVM.Value
+    :foreign_name LLVMBuildRet
+
+  :ffi build_aggregate_ret(
+    builder LLVM.Builder
+    values CPointer(LLVM.Value)
+    length U32
+  ) LLVM.Value
+    :foreign_name LLVMBuildAggregateRet
+
+  :ffi build_br(builder LLVM.Builder, block LLVM.Block) LLVM.Value
+    :foreign_name LLVMBuildBr
+
+  :ffi build_cond_br(
+    builder LLVM.Builder
+    if_value LLVM.Value
+    then_block LLVM.Block
+    else_block LLVM.Block
+  ) LLVM.Value
+    :foreign_name LLVMBuildCondBr
+
+  :ffi build_switch(
+    builder LLVM.Builder
+    value LLVM.Value
+    else_block LLVM.Block
+    num_cases U32
+  ) LLVM.Value
+    :foreign_name LLVMBuildSwitch
+
+  :ffi build_indirect_br(
+    builder LLVM.Builder
+    address LLVM.Value
+    num_destinations U32
+  ) LLVM.Value
+    :foreign_name LLVMBuildIndirectBr
+
+  :ffi build_invoke_2(
+    builder LLVM.Builder
+    type LLVM.Type
+    function LLVM.Value
+    args CPointer(LLVM.Value)
+    then_block LLVM.Block
+    catch_block LLVM.Block
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildInvoke2
+
+  :ffi build_unreachable(builder LLVM.Builder) LLVM.Value
+    :foreign_name LLVMBuildUnreachable
+
+  :ffi build_resume(
+    builder LLVM.Builder
+    exception LLVM.Value
+  ) LLVM.Value
+    :foreign_name LLVMBuildResume
+
+  :ffi build_landing_pad(
+    builder LLVM.Builder
+    type LLVM.Type
+    personality_function LLVM.Value
+    num_clauses U32
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildLandingPad
+
+  :ffi build_cleanup_ret(
+    builder LLVM.Builder
+    catch_pad LLVM.Value
+    block LLVM.Block
+  ) LLVM.Value
+    :foreign_name LLVMBuildCleanupRet
+
+  :ffi build_catch_ret(
+    builder LLVM.Builder
+    catch_pad LLVM.Value
+    block LLVM.Block
+  ) LLVM.Value
+    :foreign_name LLVMBuildCatchRet
+
+  :ffi build_catch_switch(
+    builder LLVM.Builder
+    parent_pad LLVM.Value
+    unwind_block LLVM.Block
+    num_handlers U32
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildCatchSwitch
+
+  :ffi add_case(
+    switch LLVM.Value
+    on_val LLVM.Value
+    dest_block LLVM.Block
+  ) None
+    :foreign_name LLVMAddCase
+
+  :ffi add_destination(
+    indirect_br LLVM.Value
+    dest_block LLVM.Block
+  ) None
+    :foreign_name LLVMAddDestination
+
+  :ffi get_num_clauses(landing_pad LLVM.Value) U32
+    :foreign_name LLVMGetNumClauses
+
+  :ffi get_clause(landing_pad LLVM.Value, index U32) LLVM.Value
+    :foreign_name LLVMGetClause
+
+  :ffi add_clause(
+    landing_pad LLVM.Value
+    clause LLVM.Value
+  ) None
+    :foreign_name LLVMAddClause
+
+  :ffi is_cleanup(landing_pad LLVM.Value) _FFI.Bool
+    :foreign_name LLVMIsCleanup
+
+  :ffi set_cleanup(landing_pad LLVM.Value, is_cleanup _FFI.Bool) None
+    :foreign_name LLVMSetCleanup
+
+  :ffi add_handler(
+    catch_switch LLVM.Value
+    dest_block LLVM.Block
+  ) None
+    :foreign_name LLVMAddHandler
+
+  :ffi get_num_handlers(
+    catch_switch LLVM.Value
+  ) U32
+    :foreign_name LLVMGetNumHandlers
+
+  :ffi get_handlers(
+    catch_switch LLVM.Value
+    handlers CPointer(LLVM.Block)
+  ) None
+    :foreign_name LLVMGetHandlers
+
+  :ffi get_arg_operand(
+    funclet LLVM.Value
+    index U32
+  ) LLVM.Value
+    :foreign_name LLVMGetArgOperand
+
+  :ffi set_arg_operand(
+    funclet LLVM.Value
+    index U32
+    value LLVM.Value
+  ) None
+    :foreign_name LLVMSetArgOperand
+
+  :ffi get_parent_catch_switch(
+    catch_pad LLVM.Value
+  ) LLVM.Value
+    :foreign_name LLVMGetParentCatchSwitch
+
+  :ffi set_parent_catch_switch(
+    catch_pad LLVM.Value
+    catch_switch LLVM.Value
+  ) None
+    :foreign_name LLVMSetParentCatchSwitch
+
+  :ffi build_add(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildAdd
+
+  :ffi build_nsw_add(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildNSWAdd
+
+  :ffi build_nuw_add(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildNUWAdd
+
+  :ffi build_fadd(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildFAdd
+
+  :ffi build_sub(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildSub
+
+  :ffi build_nsw_sub(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildNSWSub
+
+  :ffi build_nuw_sub(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildNUWSub
+
+  :ffi build_fsub(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildFSub
+
+  :ffi build_mul(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildMul
+
+  :ffi build_nsw_mul(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildNSWMul
+
+  :ffi build_nuw_mul(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildNUWMul
+
+  :ffi build_fmul(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildFMul
+
+  :ffi build_udiv(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildUDiv
+
+  :ffi build_exact_udiv(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildExactUDiv
+
+  :ffi build_sdiv(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildSDiv
+
+  :ffi build_exact_sdiv(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildExactSDiv
+
+  :ffi build_fdiv(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildFDiv
+
+  :ffi build_urem(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildURem
+
+  :ffi build_srem(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildSRem
+
+  :ffi build_frem(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildFRem
+
+  :ffi build_shl(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildShl
+
+  :ffi build_lshr(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildLShr
+
+  :ffi build_ashr(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildAShr
+
+  :ffi build_and(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildAnd
+
+  :ffi build_or(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildOr
+
+  :ffi build_xor(
+    builder LLVM.Builder
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildXor
+
+  :ffi build_bin_op(
+    builder LLVM.Builder
+    op LLVM.Opcode
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildBinOp
+
+  :ffi build_neg(
+    builder LLVM.Builder
+    value LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildNeg
+
+  :ffi build_nsw_neg(
+    builder LLVM.Builder
+    value LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildNSWNeg
+
+  :ffi build_fneg(
+    builder LLVM.Builder
+    value LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildFNeg
+
+  :ffi build_not(
+    builder LLVM.Builder
+    value LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildNot
+
+  :ffi get_nuw(arith_instr LLVM.Value) _FFI.Bool
+    :foreign_name LLVMGetNUW
+
+  :ffi set_nuw(arith_instr LLVM.Value, has_nuw _FFI.Bool) None
+    :foreign_name LLVMSetNUW
+
+  :ffi get_nsw(arith_instr LLVM.Value) _FFI.Bool
+    :foreign_name LLVMGetNSW
+
+  :ffi set_nsw(arith_instr LLVM.Value, has_nsw _FFI.Bool) None
+    :foreign_name LLVMSetNSW
+
+  :ffi get_exact(div_or_shr_instr LLVM.Value) _FFI.Bool
+    :foreign_name LLVMGetExact
+
+  :ffi set_exact(div_or_shr_instr LLVM.Value, is_exact _FFI.Bool) None
+    :foreign_name LLVMSetExact
+
+  :ffi get_n_neg(instr LLVM.Value) _FFI.Bool
+    :foreign_name LLVMGetNNeg
+
+  :ffi set_n_neg(instr LLVM.Value, is_n_neg _FFI.Bool) None
+    :foreign_name LLVMSetNNeg
+
+  :ffi get_fast_math_flags(fp_math_instr LLVM.Value) U32
+    :foreign_name LLVMGetFastMathFlags
+
+  :ffi set_fast_math_flags(fp_math_instr LLVM.Value, flags U32) None
+    :foreign_name LLVMSetFastMathFlags
+
+  :ffi can_value_use_fast_math_flags(instr LLVM.Value) _FFI.Bool
+    :foreign_name LLVMCanValueUseFastMathFlags
+
+  :ffi get_is_disjoint(instr LLVM.Value) _FFI.Bool
+    :foreign_name LLVMGetIsDisjoint
+
+  :ffi set_is_disjoint(instr LLVM.Value, is_disjoint _FFI.Bool) None
+    :foreign_name LLVMSetIsDisjoint
+
+  :ffi build_malloc(
+    builder LLVM.Builder
+    type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildMalloc
+
+  :ffi build_array_malloc(
+    builder LLVM.Builder
+    type LLVM.Type
+    size LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildArrayMalloc
+
+  :ffi build_memset(
+    builder LLVM.Builder
+    pointer LLVM.Value
+    value LLVM.Value
+    size LLVM.Value
+    align U32
+  ) LLVM.Value
+    :foreign_name LLVMBuildMemSet
+
+  :ffi build_memcpy(
+    builder LLVM.Builder
+    dst LLVM.Value
+    dst_align U32
+    src LLVM.Value
+    src_align U32
+    size LLVM.Value
+  ) LLVM.Value
+    :foreign_name LLVMBuildMemCpy
+
+  :ffi build_memmove(
+    builder LLVM.Builder
+    dst LLVM.Value
+    dst_align U32
+    src LLVM.Value
+    src_align U32
+    size LLVM.Value
+  ) LLVM.Value
+    :foreign_name LLVMBuildMemMove
+
+  :ffi build_alloca(
+    builder LLVM.Builder
+    type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildAlloca
+
+  :ffi build_array_alloca(
+    builder LLVM.Builder
+    type LLVM.Type
+    size LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildArrayAlloca
+
+  :ffi build_free(
+    builder LLVM.Builder
+    pointer LLVM.Value
+  ) LLVM.Value
+    :foreign_name LLVMBuildFree
+
+  :ffi build_load_2(
+    builder LLVM.Builder
+    type LLVM.Type
+    pointer LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildLoad2
+
+  :ffi build_store(
+    builder LLVM.Builder
+    value LLVM.Value
+    pointer LLVM.Value
+  ) LLVM.Value
+    :foreign_name LLVMBuildStore
+
+  :ffi build_gep_2(
+    builder LLVM.Builder
+    type LLVM.Type
+    pointer LLVM.Value
+    indices CPointer(LLVM.Value)
+    num_indices U32
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildGEP2
+
+  :ffi build_in_bounds_gep_2(
+    builder LLVM.Builder
+    type LLVM.Type
+    pointer LLVM.Value
+    indices CPointer(LLVM.Value)
+    num_indices U32
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildInBoundsGEP2
+
+  :ffi build_gep_with_no_wrap_flags(
+    builder LLVM.Builder
+    type LLVM.Type
+    pointer LLVM.Value
+    indices CPointer(LLVM.Value)
+    num_indices U32
+    name CPointer(U8)
+    no_wrap_flags U32
+  ) LLVM.Value
+    :foreign_name LLVMBuildGEPWithNoWrapFlags
+
+  :ffi build_struct_gep_2(
+    builder LLVM.Builder
+    type LLVM.Type
+    pointer LLVM.Value
+    index U32
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildStructGEP2
+
+  :ffi get_volatile(mem_access_instr LLVM.Value) _FFI.Bool
+    :foreign_name LLVMGetVolatile
+
+  :ffi set_volatile(mem_access_instr LLVM.Value, is_volatile _FFI.Bool) None
+
+  :ffi get_weak(cmp_xchg_instr LLVM.Value) _FFI.Bool
+    :foreign_name LLVMGetWeak
+
+  :ffi set_weak(cmp_xchg_instr LLVM.Value, is_weak _FFI.Bool) None
+    :foreign_name LLVMSetWeak
+
+  :ffi get_ordering(mem_access_instr LLVM.Value) LLVM.Atomic.Ordering
+    :foreign_name LLVMGetOrdering
+
+  :ffi set_ordering(
+    mem_access_instr LLVM.Value
+    ordering LLVM.Atomic.Ordering
+  ) None
+    :foreign_name LLVMSetOrdering
+
+  :ffi get_atomic_rmw_bin_op(rmw_instr LLVM.Value) LLVM.Atomic.RMWBinOp
+    :foreign_name LLVMGetAtomicRMWBinOp
+
+  :ffi set_atomic_rmw_bin_op(
+    rmw_instr LLVM.Value
+    bin_op LLVM.Atomic.RMWBinOp
+  ) None
+    :foreign_name LLVMSetAtomicRMWBinOp
+
+  :ffi build_trunc(
+    builder LLVM.Builder
+    value LLVM.Value
+    dest_type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildTrunc
+
+  :ffi build_z_ext(
+    builder LLVM.Builder
+    value LLVM.Value
+    dest_type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildZExt
+
+  :ffi build_s_ext(
+    builder LLVM.Builder
+    value LLVM.Value
+    dest_type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildSExt
+
+  :ffi build_fp_to_ui(
+    builder LLVM.Builder
+    value LLVM.Value
+    dest_type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildFPToUI
+
+  :ffi build_fp_to_si(
+    builder LLVM.Builder
+    value LLVM.Value
+    dest_type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildFPToSI
+
+  :ffi build_ui_to_fp(
+    builder LLVM.Builder
+    value LLVM.Value
+    dest_type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildUIToFP
+
+  :ffi build_si_to_fp(
+    builder LLVM.Builder
+    value LLVM.Value
+    dest_type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildSIToFP
+
+  :ffi build_fp_trunc(
+    builder LLVM.Builder
+    value LLVM.Value
+    dest_type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildFPTrunc
+
+  :ffi build_fp_ext(
+    builder LLVM.Builder
+    value LLVM.Value
+    dest_type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildFPExt
+
+  :ffi build_ptr_to_int(
+    builder LLVM.Builder
+    value LLVM.Value
+    dest_type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildPtrToInt
+
+  :ffi build_int_to_ptr(
+    builder LLVM.Builder
+    value LLVM.Value
+    dest_type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildIntToPtr
+
+  :ffi build_bit_cast(
+    builder LLVM.Builder
+    value LLVM.Value
+    dest_type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildBitCast
+
+  :ffi build_addr_space_cast(
+    builder LLVM.Builder
+    value LLVM.Value
+    dest_type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildAddrSpaceCast
+
+  :ffi build_z_ext_or_bit_cast(
+    builder LLVM.Builder
+    value LLVM.Value
+    dest_type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildZExtOrBitCast
+
+  :ffi build_s_ext_or_bit_cast(
+    builder LLVM.Builder
+    value LLVM.Value
+    dest_type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildSExtOrBitCast
+
+  :ffi build_trunc_or_bit_cast(
+    builder LLVM.Builder
+    value LLVM.Value
+    dest_type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildTruncOrBitCast
+
+  :ffi build_cast(
+    builder LLVM.Builder
+    op LLVM.Opcode
+    value LLVM.Value
+    dest_type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildCast
+
+  :ffi build_pointer_cast(
+    builder LLVM.Builder
+    value LLVM.Value
+    dest_type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildPointerCast
+
+  :ffi build_int_cast_2(
+    builder LLVM.Builder
+    value LLVM.Value
+    dest_type LLVM.Type
+    is_signed _FFI.Bool
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildIntCast2
+
+  :ffi build_fp_cast(
+    builder LLVM.Builder
+    value LLVM.Value
+    dest_type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildFPCast
+
+  :ffi build_i_cmp(
+    builder LLVM.Builder
+    pred LLVM.Predicate.Int
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildICmp
+
+  :ffi build_f_cmp(
+    builder LLVM.Builder
+    pred LLVM.Predicate.Real
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildFCmp
+
+  :ffi build_phi(
+    builder LLVM.Builder
+    type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildPhi
+
+  :ffi build_call_2(
+    builder LLVM.Builder
+    function_type LLVM.Type.Function
+    function LLVM.Value
+    args CPointer(LLVM.Value)
+    num_args U32
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildCall2
+
+  :ffi build_select(
+    builder LLVM.Builder
+    condition LLVM.Value
+    then_value LLVM.Value
+    else_value LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildSelect
+
+  :ffi build_va_arg(
+    builder LLVM.Builder
+    list LLVM.Value
+    type LLVM.Type
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildVAArg
+
+  :ffi build_extract_element(
+    builder LLVM.Builder
+    vector LLVM.Value
+    index LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildExtractElement
+
+  :ffi build_insert_element(
+    builder LLVM.Builder
+    vector LLVM.Value
+    element LLVM.Value
+    index LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildInsertElement
+
+  :ffi build_shuffle_vector(
+    builder LLVM.Builder
+    vector_1 LLVM.Value
+    vector_2 LLVM.Value
+    mask LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildShuffleVector
+
+  :ffi build_extract_value(
+    builder LLVM.Builder
+    aggregate LLVM.Value
+    index U32
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildExtractValue
+
+  :ffi build_insert_value(
+    builder LLVM.Builder
+    aggregate LLVM.Value
+    element LLVM.Value
+    index U32
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildInsertValue
+
+  :ffi build_freeze(
+    builder LLVM.Builder
+    value LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildFreeze
+
+  :ffi build_is_null(
+    builder LLVM.Builder
+    value LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildIsNull
+
+  :ffi build_is_not_null(
+    builder LLVM.Builder
+    value LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildIsNotNull
+
+  :ffi build_ptr_diff_2(
+    builder LLVM.Builder
+    element_type LLVM.Type
+    lhs LLVM.Value
+    rhs LLVM.Value
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildPtrDiff2
+
+  :ffi build_fence(
+    builder LLVM.Builder
+    ordering LLVM.Atomic.Ordering
+    single_thread _FFI.Bool
+    name CPointer(U8)
+  ) LLVM.Value
+    :foreign_name LLVMBuildFence
+
+  :ffi build_atomic_rmw(
+    builder LLVM.Builder
+    op LLVM.Atomic.RMWBinOp
+    pointer LLVM.Value
+    value LLVM.Value
+    ordering LLVM.Atomic.Ordering
+    single_thread _FFI.Bool
+  ) LLVM.Value
+    :foreign_name LLVMBuildAtomicRMW
+
+  :ffi build_atomic_cmp_xchg(
+    builder LLVM.Builder
+    pointer LLVM.Value
+    cmp LLVM.Value
+    new LLVM.Value
+    success_ordering LLVM.Atomic.Ordering
+    failure_ordering LLVM.Atomic.Ordering
+    single_thread _FFI.Bool
+  ) LLVM.Value
+    :foreign_name LLVMBuildAtomicCmpXchg
+
+  :ffi get_undef_mask_elem I32
+    :foreign_name LLVMGetUndefMaskElem
+
+  :ffi get_mask_value(
+    shuffle_vector_instr LLVM.Value
+    element U32
+  ) I32
+    :foreign_name LLVMGetMaskValue
+
+  :ffi is_atomic_single_thread(atomic_instr LLVM.Value) _FFI.Bool
+    :foreign_name LLVMIsAtomicSingleThread
+
+  :ffi set_atomic_single_thread(
+    atomic_instr LLVM.Value
+    is_single_thread _FFI.Bool
+  ) None
+    :foreign_name LLVMSetAtomicSingleThread
+
+  :ffi get_cmp_xchg_success_ordering(
+    cmp_xchg_instr LLVM.Value
+  ) LLVM.Atomic.Ordering
+    :foreign_name LLVMGetCmpXchgSuccessOrdering
+
+  :ffi set_cmp_xchg_success_ordering(
+    cmp_xchg_instr LLVM.Value
+    ordering LLVM.Atomic.Ordering
+  ) None
+    :foreign_name LLVMSetCmpXchgSuccessOrdering
+
+  :ffi get_cmp_xchg_failure_ordering(
+    cmp_xchg_instr LLVM.Value
+  ) LLVM.Atomic.Ordering
+    :foreign_name LLVMGetCmpXchgFailureOrdering
+
+  :ffi set_cmp_xchg_failure_ordering(
+    cmp_xchg_instr LLVM.Value
+    ordering LLVM.Atomic.Ordering
+  ) None
+    :foreign_name LLVMSetCmpXchgFailureOrdering
+
+  ///
+  // Basic Block
+  // <https://llvm.org/doxygen/group__LLVMCCoreValueBasicBlock.html>
+  //
+
+  :: Convert a basic block instance to a value type.
+  :ffi basic_block_as_value(block LLVM.Block'box) LLVM.Value
+    :foreign_name LLVMBasicBlockAsValue
+
+  :: Determine whether an LLVMValueRef is itself a basic block.
+  :ffi is_basic_block(value LLVM.Value'box) _FFI.Bool
+    :foreign_name LLVMValueIsBasicBlock
+
+  :: Convert an LLVMValueRef to an LLVMBasicBlockRef instance.
+  :ffi value_as_basic_block(value LLVM.Value'box) LLVM.Block
+    :foreign_name LLVMValueAsBasicBlock
+
+  :: Obtain the string name of a basic block.
+  :ffi get_basic_block_name(block LLVM.Block'box) CPointer(U8)
+    :foreign_name LLVMGetBasicBlockName
+
+  :: Obtain the function to which a basic block belongs.
+  :ffi get_basic_block_parent(block LLVM.Block'box) LLVM.Function
+    :foreign_name LLVMGetBasicBlockParent
+
+  :: Obtain the terminator instruction for a basic block.
+  :ffi get_basic_block_terminator(block LLVM.Block'box) LLVM.Value
+    :foreign_name LLVMGetBasicBlockTerminator
+
+  :: Obtain the number of basic blocks in a function.
+  :ffi count_basic_blocks(function LLVM.Function'box) U32
+    :foreign_name LLVMCountBasicBlocks
+
+  :: Obtain all of the basic blocks in a function.
+  :ffi get_basic_blocks(
+    function LLVM.Function'box
+    dest CPointer(LLVM.Block'box)
+  ) None
+    :foreign_name LLVMGetBasicBlocks
+
+  :: Obtain the first basic block in a function.
+  :ffi get_first_basic_block(function LLVM.Function'box) LLVM.Block
+    :foreign_name LLVMGetFirstBasicBlock
+
+  :: Obtain the last basic block in a function.
+  :ffi get_last_basic_block(function LLVM.Function'box) LLVM.Block
+    :foreign_name LLVMGetLastBasicBlock
+
+  :: Advance a basic block iterator.
+  :ffi get_next_basic_block(block LLVM.Block'box) LLVM.Block
+    :foreign_name LLVMGetNextBasicBlock
+
+  :: Go backwards in a basic block iterator.
+  :ffi get_previous_basic_block(block LLVM.Block'box) LLVM.Block
+    :foreign_name LLVMGetPreviousBasicBlock
+
+  :: Obtain the basic block that corresponds to the entry point of a function.
+  :ffi get_entry_basic_block(function LLVM.Value'box) LLVM.Block
+    :foreign_name LLVMGetEntryBasicBlock
+
+  :: Insert the given basic block after the insertion point of the given builder
+  :ffi insert_existing_basic_block_after_insert_block(
+    builder LLVM.Builder
+    block LLVM.Block
+  ) None
+    :foreign_name LLVMInsertExistingBasicBlockAfterInsertBlock
+
+  :: Insert the given basic block to the basic block list of the given function.
+  :ffi append_existing_basic_block(
+    function LLVM.Value
+    block LLVM.Block
+  ) None
+    :foreign_name LLVMAppendExistingBasicBlock
+
+  :: Create a new basic block without inserting it into a function.
+  :ffi create_basic_block_in_context(
+    context _FFI.ContextPtr
+    name CPointer(U8)
+  ) LLVM.Block
+    :foreign_name LLVMCreateBasicBlockInContext
+
+  :: Append a basic block to the end of a function.
+  :ffi append_basic_block_in_context(
+    context _FFI.ContextPtr
+    function LLVM.Function
+    name CPointer(U8)
+  ) LLVM.Block
+    :foreign_name LLVMAppendBasicBlockInContext
+
+  :: Insert a basic block in a function before another basic block.
+  :ffi insert_basic_block_in_context(
+    context _FFI.ContextPtr
+    block LLVM.Block
+    name CPointer(U8)
+  ) LLVM.Block
+    :foreign_name LLVMInsertBasicBlockInContext
+
+  :: Remove a basic block from a function and delete it.
+  :ffi delete_basic_block(block LLVM.Block) None
+    :foreign_name LLVMDeleteBasicBlock
+
+  :: Remove a basic block from a function.
+  :ffi remove_basic_block_from_fparent(block LLVM.Block) None
+    :foreign_name LLVMRemoveBasicBlockFromParent
+
+  :: Move a basic block to before another one.
+  :ffi move_basic_block_before(
+    block LLVM.Block
+    move_pos LLVM.Block
+  ) None
+    :foreign_name LLVMMoveBasicBlockBefore
+
+  :: Move a basic block to after another one.
+  :ffi move_basic_block_after(
+    block LLVM.Block
+    move_pos LLVM.Block
+  ) None
+    :foreign_name LLVMMoveBasicBlockAfter
+
+  :: Obtain the first instruction in a basic block.
+  :ffi get_first_instruction(block LLVM.Block) LLVM.Value
+    :foreign_name LLVMGetFirstInstruction
+
+  :: Obtain the last instruction in a basic block.
+  :ffi get_last_instruction(block LLVM.Block) LLVM.Value
+    :foreign_name LLVMGetLastInstruction

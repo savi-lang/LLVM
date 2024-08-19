@@ -1,0 +1,13 @@
+:class LLVM
+  :let _ptr: _FFI.context_create
+  :let build: _FFI.create_builder_in_context(@_ptr)
+  :let types LLVM.Types
+  :let const LLVM.Const
+  :new
+    @types = LLVM.Types._for_context_ptr(@_ptr)
+    @const = LLVM.Const._for_context_ptr(@_ptr, @types)
+
+  :fun ref create_module(name String)
+    LLVM.Module._from_ptr(
+      _FFI.module_create_with_name_in_context(name.cstring, @_ptr)
+    )

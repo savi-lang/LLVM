@@ -1,0 +1,4 @@
+:class LLVM.Error.WritingFile
+  :let filename String
+  :let message String
+  :new (@filename, @message)

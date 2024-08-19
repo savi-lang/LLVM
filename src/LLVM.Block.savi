@@ -1,0 +1,22 @@
+:struct LLVM.Block
+  :let _ptr CPointer(None)
+  :new _from_ptr(@_ptr)
+
+  :: Convert the block into a value (for instructions which take a block value).
+  :fun as_value @->(LLVM.Value)
+    _FFI.Cast(LLVM.Value, @->(LLVM.Value)).pointer(_FFI.basic_block_as_value(@))
+
+  :: Get the name of the block.
+  :fun name: _FFI.string(_FFI.get_basic_block_name(@))
+
+  :: Get the function to which the block belongs.
+  :fun parent: _FFI.get_basic_block_parent(@)
+
+  :: Check if the block has a terminator instruction.
+  :fun has_terminator: _FFI.get_basic_block_terminator(@)._ptr.is_not_null
+
+  :: Get the terminator instruction of the block.
+  :fun terminator!
+    terminator = _FFI.get_basic_block_terminator(@)
+    error! if terminator._ptr.is_null
+    terminator

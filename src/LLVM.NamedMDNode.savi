@@ -1,0 +1,3 @@
+:struct LLVM.NamedMDNode
+  :let _ptr CPointer(None)
+  :new _from_ptr(@_ptr)

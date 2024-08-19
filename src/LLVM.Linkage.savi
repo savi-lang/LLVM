@@ -1,0 +1,50 @@
+:enum LLVM.Linkage
+  :: Externally visible function.
+  :member External 0
+
+  :member AvailableExternally 1
+
+  :: Keep one inline copy of function when linking (inline).
+  :member LinkOnceAny 2
+
+  :: Like LinkOnceAny, but only replaced by something equivalent.
+  :member LinkOnceODR 3
+
+  :: Obsolete.
+  :member LinkOnceODRAutoHide 4
+
+  :: Keep one weak copy of function when linking (weak).
+  :member WeakAny 5
+
+  :: Like WeakAny, but only replaced by something equivalent.
+  :member WeakODR 6
+
+  :: Special purpose, only applies to global arrays.
+  :member Appending 7
+
+  :: Rename collisions when linking (static functions).
+  :member Internal 8
+
+  :: Like Internal, but omit from symbol table.
+  :member Private 9
+
+  :: Obsolete.
+  :member DLLImport 10
+
+  :: Obsolete.
+  :member DLLExport 11
+
+  :: ExternalWeak linkage description.
+  :member ExternalWeak 12
+
+  :: Obsolete.
+  :member Ghost 13
+
+  :: Tentative definitions
+  :member Common 14
+
+  :: Like Private, but linker removes.
+  :member LinkerPrivate 15
+
+  :: Like LinkerPrivate, but is weak.
+  :member LinkerPrivateWeak 16

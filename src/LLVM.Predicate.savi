@@ -1,0 +1,79 @@
+:enum LLVM.Predicate.Int
+  :: Equal
+  :member EQ 32
+
+  :: Not equal
+  :member NE 33
+
+  :: Unsigned greater than
+  :member UGT 34
+
+  :: Unsigned greater or equal
+  :member UGE 35
+
+  :: Unsigned less than
+  :member ULT 36
+
+  :: Unsigned less or equal
+  :member ULE 37
+
+  :: Signed greater than
+  :member SGT 38
+
+  :: Signed greater or equal
+  :member SGE 39
+
+  :: Signed less than
+  :member SLT 40
+
+  :: Signed less or equal
+  :member SLE 41
+
+:enum LLVM.Predicate.Real
+  :: Always false (always folded)
+  :member False 0
+
+  :: True if ordered and equal
+  :member OEQ 1
+
+  :: True if ordered and greater than
+  :member OGT 2
+
+  :: True if ordered and greater than or equal
+  :member OGE 3
+
+  :: True if ordered and less than
+  :member OLT 4
+
+  :: True if ordered and less than or equal
+  :member OLE 5
+
+  :: True if ordered and operands are unequal
+  :member ONE 6
+
+  :: True if ordered (no nans)
+  :member ORD 7
+
+  :: True if unordered: isnan(X) | isnan(Y)
+  :member UNO 8
+
+  :: True if unordered or equal
+  :member UEQ 9
+
+  :: True if unordered or greater than
+  :member UGT 10
+
+  :: True if unordered, greater than, or equal
+  :member UGE 11
+
+  :: True if unordered or lesser than
+  :member ULT 12
+
+  :: True if unordered, lesser than, or equal
+  :member ULE 13
+
+  :: True if unordered or not equal
+  :member UNE 14
+
+  :: Always true (always folded)
+  :member True 15

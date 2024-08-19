@@ -1,0 +1,9 @@
+:enum LLVM.Visibility
+  :: The GV is visible.
+  :member Default 0
+
+  :: The GV is hidden.
+  :member Hidden 1
+
+  :: The GV is protected.
+  :member Protected 2

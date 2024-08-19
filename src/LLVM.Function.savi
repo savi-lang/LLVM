@@ -1,0 +1,106 @@
+:struct LLVM.Function
+  :is Indexable(LLVM.Block)
+
+  :let _ptr CPointer(None)
+  :new _from_ptr(@_ptr)
+
+  :fun as_value @->(LLVM.Value)
+    _FFI.Cast(@, @->(LLVM.Value)).pointer(@)
+  :fun as_global @->(LLVM.Value.Global)
+    _FFI.Cast(@, @->(LLVM.Value.Global)).pointer(@)
+
+  :fun into_string_space: @as_value.into_string_space
+  :fun into_string(out String'ref): @as_value.into_string(out)
+
+  :fun type @->(LLVM.Type.Function)
+    _FFI.Cast(@->(LLVM.Type), @->(LLVM.Type.Function)).pointer(
+      @as_global.global_type
+    )
+
+  :: Count the number of blocks in the function.
+  :fun count_blocks
+    _FFI.count_basic_blocks(@).usize
+
+  :: Create and return a new block, appended onto the end of the function.
+  :fun ref add_block(name String) LLVM.Block
+    _FFI.append_basic_block_in_context(
+      _FFI.get_type_context(LLVM.Value._from_ptr(@_ptr).type), @, name.cstring
+    )
+
+  :: Walk through each block in the function to return the block at the
+  :: given index. Raises an error if there are too few blocks to reach it.
+  :fun "[]!"(index USize) @->(LLVM.Block)
+    block = _FFI.Cast((LLVM.Block), @->(LLVM.Block)).pointer(
+      _FFI.get_first_basic_block(@)
+    )
+    while index.is_nonzero (
+      error! if block._ptr.is_null
+      index -= 1, block = _FFI.Cast((LLVM.Block), @->(LLVM.Block)).pointer(
+        _FFI.get_next_basic_block(block)
+      )
+    )
+    block
+
+  :: Yield each block in the function, starting with the first block.
+  :fun each_with_index(
+    from USize = 0
+    to = USize.max_value
+    stride USize = 1
+  ) None
+    :yields (@->(LLVM.Block), USize)
+    index = USize.zero - from
+    to = to - from
+    block = _FFI.Cast(LLVM.Block, @->(LLVM.Block)).pointer(
+      _FFI.get_first_basic_block(@)
+    )
+    return unless block._ptr.is_not_null
+    while index.is_nonzero (
+      index += 1, block = _FFI.Cast(LLVM.Block, @->(LLVM.Block)).pointer(
+        _FFI.get_next_basic_block(block)
+      )
+    )
+    while block._ptr.is_not_null (
+      break if index >= to
+      yield (block, index + from)
+      index += 1, block = _FFI.Cast(LLVM.Block, @->(LLVM.Block)).pointer(
+        _FFI.get_next_basic_block(block)
+      )
+      while (index % stride).is_nonzero (
+        index += 1, block = _FFI.Cast(LLVM.Block, @->(LLVM.Block)).pointer(
+          _FFI.get_next_basic_block(block)
+        )
+      )
+    )
+
+  :: Yield each block in the function, starting with the last block,
+  :: moving backwards until the first block.
+  :fun reverse_each_with_index(
+    from = USize.max_value
+    to USize = 0
+    stride USize = 1
+  ) None
+    :yields (@->(LLVM.Block), USize)
+    index = @count_blocks
+    block = _FFI.Cast(LLVM.Block, @->(LLVM.Block)).pointer(
+      _FFI.get_last_basic_block(@)
+    )
+    return unless block._ptr.is_not_null
+    distance = 0
+    while (index > from) (
+      index -= 1, block = _FFI.Cast(LLVM.Block, @->(LLVM.Block)).pointer(
+        _FFI.get_previous_basic_block(block)
+      )
+    )
+    while block._ptr.is_not_null (
+      break if index <= to
+      yield (block, index)
+      index -= 1, block = _FFI.Cast(LLVM.Block, @->(LLVM.Block)).pointer(
+        _FFI.get_previous_basic_block(block)
+      )
+      while (index % stride).is_nonzero (
+        index -= 1, block = _FFI.Cast(LLVM.Block, @->(LLVM.Block)).pointer(
+          _FFI.get_next_basic_block(block)
+        )
+      )
+    )
+

@@ -1,0 +1,9 @@
+:enum LLVM.UnnamedAddr
+  :: Address of the GV is significant.
+  :member None 0
+
+  :: Address of the GV is locally insignificant.
+  :member Local 1
+
+  :: Address of the GV is globally insignificant.
+  :member Global 2

@@ -1,0 +1,266 @@
+:enum LLVM.Type.Kind
+  :member Void 0
+  :member Half 1
+  :member Float 2
+  :member Double 3
+  :member X86_FP80 4
+  :member FP128 5
+  :member PPC_FP128 6
+  :member Label 7
+  :member Integer 8
+  :member Function 9
+  :member Struct 10
+  :member Array 11
+  :member Pointer 12
+  :member Vector 13
+  :member Metadata 14
+  // obsolete: :member X86_MMX 15
+  :member Token 16
+  :member ScalableVector 17
+  :member BFloat 18
+  :member X86_AMX 19
+  :member TargetExt 20
+
+  :fun is_void: @ == LLVM.Type.Kind.Void
+  :fun is_integer: @ == LLVM.Type.Kind.Integer
+  :fun is_float: @ == LLVM.Type.Kind.BFloat || (
+    @ <= LLVM.Type.Kind.PPC_FP128 && @ >= LLVM.Type.Kind.Half
+  )
+  :fun is_array: @ == LLVM.Type.Kind.Array
+  :fun is_vector: @ == LLVM.Type.Kind.Vector || @ == LLVM.Type.Kind.ScalableVector
+  :fun is_pointer: @ == LLVM.Type.Kind.Pointer
+  :fun is_struct: @ == LLVM.Type.Kind.Struct
+  :fun is_function: @ == LLVM.Type.Kind.Function
+
+:struct LLVM.Type
+  :let _ptr CPointer(None)
+  :new _from_ptr(@_ptr)
+
+  :fun kind LLVM.Type.Kind: _FFI.get_type_kind(@)
+
+  :fun into_string_space USize
+    string = _FFI.string(_FFI.print_type_to_string(@))
+    space = string.size
+    _FFI.dispose_message(string.cpointer)
+    space
+  :fun into_string(out String'ref) None
+    string = _FFI.string(_FFI.print_type_to_string(@))
+    string.into_string(out)
+    _FFI.dispose_message(string.cpointer)
+
+  :fun as_integer_type! @->(LLVM.Type.Integer)
+    error! unless @kind.is_integer
+    _FFI.Cast(@, @->(LLVM.Type.Integer)).pointer(@)
+
+  :fun as_floating_point_type! @->(LLVM.Type.FloatingPoint)
+    error! unless @kind.is_floating_point
+    _FFI.Cast(@, @->(LLVM.Type.FloatingPoint)).pointer(@)
+
+  :fun as_array_type! @->(LLVM.Type.Array)
+    error! unless @kind.is_array
+    _FFI.Cast(@, @->(LLVM.Type.Array)).pointer(@)
+
+  :fun as_vector_type! @->(LLVM.Type.Vector)
+    error! unless @kind.is_vector
+    _FFI.Cast(@, @->(LLVM.Type.Vector)).pointer(@)
+
+  :fun as_pointer_type! @->(LLVM.Type.Pointer)
+    error! unless @kind.is_pointer
+    _FFI.Cast(@, @->(LLVM.Type.Pointer)).pointer(@)
+
+  :fun as_struct_type! @->(LLVM.Type.Struct)
+    error! unless @kind.is_struct
+    _FFI.Cast(@, @->(LLVM.Type.Struct)).pointer(@)
+
+  :fun as_function_type! @->(LLVM.Type.Function)
+    error! unless @kind.is_function
+    _FFI.Cast(@, @->(LLVM.Type.Function)).pointer(@)
+
+:struct LLVM.Type.Integer
+  :let _ptr CPointer(None)
+  :new _from_ptr(@_ptr)
+  :fun as_type
+    _FFI.Cast(LLVM.Type, @->(LLVM.Type)).pointer(LLVM.Type._from_ptr(@_ptr))
+  :fun into_string_space: @as_type.into_string_space
+  :fun into_string(out String'ref): @as_type.into_string(out)
+
+  :: Get the bit width of the integer type.
+  :fun bit_width: _FFI.get_int_type_width(@)
+
+:struct LLVM.Type.FloatingPoint
+  :let _ptr CPointer(None)
+  :new _from_ptr(@_ptr)
+  :fun as_type
+    _FFI.Cast(LLVM.Type, @->(LLVM.Type)).pointer(LLVM.Type._from_ptr(@_ptr))
+  :fun into_string_space: @as_type.into_string_space
+  :fun into_string(out String'ref): @as_type.into_string(out)
+
+:struct LLVM.Type.Array
+  :let _ptr CPointer(None)
+  :new _from_ptr(@_ptr)
+  :fun as_type
+    _FFI.Cast(LLVM.Type, @->(LLVM.Type)).pointer(LLVM.Type._from_ptr(@_ptr))
+  :fun into_string_space: @as_type.into_string_space
+  :fun into_string(out String'ref): @as_type.into_string(out)
+
+  :: Get the type of elements in the array type.
+  :fun element_type @->(LLVM.Type)
+    _FFI.Cast(LLVM.Type'box, @->(LLVM.Type)).pointer(_FFI.get_array_element_type(@))
+
+  :: Get the number of elements in the array type.
+  :fun size USize: _FFI.get_array_length_2(@).usize
+
+:struct LLVM.Type.Vector
+  :let _ptr CPointer(None)
+  :new _from_ptr(@_ptr)
+  :fun as_type
+    _FFI.Cast(LLVM.Type, @->(LLVM.Type)).pointer(LLVM.Type._from_ptr(@_ptr))
+  :fun into_string_space: @as_type.into_string_space
+  :fun into_string(out String'ref): @as_type.into_string(out)
+
+  :: Get the type of elements in the vector type.
+  :fun element_type @->(LLVM.Type)
+    _FFI.Cast(LLVM.Type'box, @->(LLVM.Type)).pointer(_FFI.get_vector_element_type(@))
+
+  :: Get the number of elements in the vector type.
+  :fun size USize: _FFI.get_vector_size(@).usize
+
+:struct LLVM.Type.Pointer
+  :let _ptr CPointer(None)
+  :new _from_ptr(@_ptr)
+  :fun as_type
+    _FFI.Cast(LLVM.Type, @->(LLVM.Type)).pointer(LLVM.Type._from_ptr(@_ptr))
+  :fun into_string_space: @as_type.into_string_space
+  :fun into_string(out String'ref): @as_type.into_string(out)
+
+  :: Get the address space of the pointer type.
+  :fun address_space U32: _FFI.get_pointer_address_space(@)
+
+:struct LLVM.Type.Struct
+  :let _ptr CPointer(None)
+  :new _from_ptr(@_ptr)
+  :fun as_type
+    _FFI.Cast(LLVM.Type, @->(LLVM.Type)).pointer(LLVM.Type._from_ptr(@_ptr))
+  :fun into_string_space: @as_type.into_string_space
+  :fun into_string(out String'ref): @as_type.into_string(out)
+
+  :: Get the name of the struct type.
+  :fun name: _FFI.string(_FFI.get_struct_name(@))
+
+  :: Set the contents of the struct type.
+  :fun ref set_body(element_types Array(LLVM.Type'box), packed = False)
+    _FFI.struct_set_body(
+      @, element_types.cpointer, element_types.size.u32, _FFI.Bool.from(packed)
+    )
+    @
+
+  :: Get the number of elements in the struct type.
+  :fun element_types_size USize: _FFI.count_struct_element_types(@).usize
+
+  :: Get the element types of the struct type.
+  :fun element_types Array(@->(LLVM.Type))
+    size = @element_types_size
+    array = Array(@->(LLVM.Type)).new(size)
+    array_cpointer = _FFI.Cast(
+      CPointer(@->(LLVM.Type))
+      CPointer(LLVM.Type)
+    ).pointer(array.cpointer)
+    // TODO: More efficient way (without initializing each element) to set the
+    // size of an array before or after an FFI call that fills it from C side?
+    size.times -> (
+      array << _FFI.Cast(LLVM.Type, @->(LLVM.Type)).pointer(
+        LLVM.Type._from_ptr(CPointer(None).null)
+      )
+    )
+    _FFI.get_struct_element_types(@, array_cpointer)
+    array
+
+  :fun is_packed Bool: _FFI.is_packed_struct(@).bool
+  :fun is_opaque Bool: _FFI.is_opaque_struct(@).bool
+  :fun is_literal Bool: _FFI.is_literal_struct(@).bool
+
+:struct LLVM.Type.Function
+  :let _ptr CPointer(None)
+  :new _from_ptr(@_ptr)
+  :fun as_type @->(LLVM.Type)
+    _FFI.Cast(LLVM.Type, @->(LLVM.Type)).pointer(LLVM.Type._from_ptr(@_ptr))
+  :fun into_string_space: @as_type.into_string_space
+  :fun into_string(out String'ref): @as_type.into_string(out)
+
+  :: Get the return type of the function type.
+  :fun return_type @->(LLVM.Type)
+    _FFI.Cast(LLVM.Type'box, @->(LLVM.Type)).pointer(_FFI.get_return_type(@))
+
+  :: Get the number of parameters in the function type.
+  :fun param_types_size USize: _FFI.count_param_types(@).usize
+
+  :: Get the parameter types of the function type.
+  :fun param_types Array(@->(LLVM.Type))
+    size = @param_types_size
+    array = Array(@->(LLVM.Type)).new(size)
+    array_cpointer = _FFI.Cast(
+      CPointer(@->(LLVM.Type))
+      CPointer(LLVM.Type'box)
+    ).pointer(array.cpointer)
+    // TODO: More efficient way (without initializing each element) to set the
+    // size of an array before or after an FFI call that fills it from C side?
+    size.times -> (
+      array << _FFI.Cast(LLVM.Type, @->(LLVM.Type)).pointer(
+        LLVM.Type._from_ptr(CPointer(None).null)
+      )
+    )
+    _FFI.get_param_types(@, array_cpointer)
+    array
+
+  :fun is_variadic Bool: _FFI.is_function_var_arg(@).bool
+
+:class LLVM.Types
+  :let void LLVM.Type
+  :let ptr LLVM.Type
+  :let i1 LLVM.Type
+  :let i8 LLVM.Type
+  :let i16 LLVM.Type
+  :let i32 LLVM.Type
+  :let i64 LLVM.Type
+  :let i128 LLVM.Type
+  :let f16 LLVM.Type
+  :let bf16 LLVM.Type
+  :let f32 LLVM.Type
+  :let f64 LLVM.Type
+
+  :let _ptr _FFI.ContextPtr
+  :new _for_context_ptr(@_ptr)
+    @void = _FFI.Cast(LLVM.Type, LLVM.Type).pointer(_FFI.void_type_in_context(@_ptr))
+    @ptr = _FFI.Cast(LLVM.Type.Pointer, LLVM.Type).pointer(_FFI.pointer_type_in_context(@_ptr, 0))
+    @i1 = _FFI.Cast(LLVM.Type.Integer, LLVM.Type).pointer(_FFI.int1_type_in_context(@_ptr))
+    @i8 = _FFI.Cast(LLVM.Type.Integer, LLVM.Type).pointer(_FFI.int8_type_in_context(@_ptr))
+    @i16 = _FFI.Cast(LLVM.Type.Integer, LLVM.Type).pointer(_FFI.int16_type_in_context(@_ptr))
+    @i32 = _FFI.Cast(LLVM.Type.Integer, LLVM.Type).pointer(_FFI.int32_type_in_context(@_ptr))
+    @i64 = _FFI.Cast(LLVM.Type.Integer, LLVM.Type).pointer(_FFI.int64_type_in_context(@_ptr))
+    @i128 = _FFI.Cast(LLVM.Type.Integer, LLVM.Type).pointer(_FFI.int128_type_in_context(@_ptr))
+    @f16 = _FFI.Cast(LLVM.Type.FloatingPoint, LLVM.Type).pointer(_FFI.half_type_in_context(@_ptr))
+    @bf16 = _FFI.Cast(LLVM.Type.FloatingPoint, LLVM.Type).pointer(_FFI.b_float_type_in_context(@_ptr))
+    @f32 = _FFI.Cast(LLVM.Type.FloatingPoint, LLVM.Type).pointer(_FFI.float_type_in_context(@_ptr))
+    @f64 = _FFI.Cast(LLVM.Type.FloatingPoint, LLVM.Type).pointer(_FFI.double_type_in_context(@_ptr))
+
+  :fun ref array(element_type LLVM.Type'box, size USize)
+    _FFI.array_type2(element_type, size.u64)
+
+  :fun ref vector(element_type LLVM.Type'box, size USize)
+    _FFI.vector_type(element_type, try (size.u32! | U32.max_value))
+
+  :fun ref function(
+    return_type LLVM.Type'box
+    param_types Array(LLVM.Type'box) = []
+    is_variadic = False
+  )
+    _FFI.function_type(
+      return_type
+      param_types.cpointer
+      try (param_types.size.u32! | U32.max_value)
+      _FFI.Bool.from(is_variadic)
+    )
+
+  :fun ref struct(name String)
+    _FFI.struct_create_named(@_ptr, name.cstring)
+

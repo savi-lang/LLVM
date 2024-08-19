@@ -1,0 +1,5 @@
+:enum LLVM.InlineAsm.Dialect
+  // Must match size/members of LLVM FFI enum `LLVMInlineAsmDialect`
+  :bit_width 32
+  :member ATT 0
+  :member Intel 1

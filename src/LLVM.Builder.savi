@@ -1,0 +1,237 @@
+:struct LLVM.Builder
+  :let _ptr CPointer(None) // opaque
+  :new _from_ptr(@_ptr)
+
+  :fun ref at(block LLVM.Block) None
+    _FFI.position_builder_at_end(@, block)
+
+  :fun ref before(instruction LLVM.Value) None
+    _FFI.position_builder_before_instr_and_dbg_records(@, instruction)
+
+  :fun ref ret_void: _FFI.build_ret_void(@)
+
+  :fun ref ret(value LLVM.Value): _FFI.build_ret(@, value)
+
+  :fun ref aggregate_ret(values Array(LLVM.Value))
+    _FFI.build_aggregate_ret(@, values.cpointer, values.size.u32)
+
+  :fun ref br(block LLVM.Block): _FFI.build_br(@, block)
+
+  :fun ref cond_br(
+    if_value LLVM.Value
+    then_block LLVM.Block
+    else_block LLVM.Block
+  )
+    _FFI.build_cond_br(@, if_value, then_block, else_block)
+
+  // TODO: :fun ref switch
+  // TODO: :fun ref indirect_br
+  // TODO: :fun ref invoke
+
+  :fun ref unreachable: _FFI.build_unreachable(@)
+
+  // TODO: :fun ref resume
+  // TODO: :fun ref landing_pad
+  // TODO: :fun ref cleanup_ret
+  // TODO: :fun ref catch_ret
+  // TODO: :fun ref catch_switch
+
+  :fun ref add(lhs, rhs, name = ""):        _FFI.build_add(@, lhs, rhs, name.cstring)
+  :fun ref nsw_add(lhs, rhs, name = ""):    _FFI.build_nsw_add(@, lhs, rhs, name.cstring)
+  :fun ref nuw_add(lhs, rhs, name = ""):    _FFI.build_nuw_add(@, lhs, rhs, name.cstring)
+  :fun ref fadd(lhs, rhs, name = ""):       _FFI.build_fadd(@, lhs, rhs, name.cstring)
+  :fun ref sub(lhs, rhs, name = ""):        _FFI.build_sub(@, lhs, rhs, name.cstring)
+  :fun ref nsw_sub(lhs, rhs, name = ""):    _FFI.build_nsw_sub(@, lhs, rhs, name.cstring)
+  :fun ref nuw_sub(lhs, rhs, name = ""):    _FFI.build_nuw_sub(@, lhs, rhs, name.cstring)
+  :fun ref fsub(lhs, rhs, name = ""):       _FFI.build_fsub(@, lhs, rhs, name.cstring)
+  :fun ref mul(lhs, rhs, name = ""):        _FFI.build_mul(@, lhs, rhs, name.cstring)
+  :fun ref nsw_mul(lhs, rhs, name = ""):    _FFI.build_nsw_mul(@, lhs, rhs, name.cstring)
+  :fun ref nuw_mul(lhs, rhs, name = ""):    _FFI.build_nuw_mul(@, lhs, rhs, name.cstring)
+  :fun ref fmul(lhs, rhs, name = ""):       _FFI.build_fmul(@, lhs, rhs, name.cstring)
+  :fun ref udiv(lhs, rhs, name = ""):       _FFI.build_udiv(@, lhs, rhs, name.cstring)
+  :fun ref exact_udiv(lhs, rhs, name = ""): _FFI.build_exact_udiv(@, lhs, rhs, name.cstring)
+  :fun ref sdiv(lhs, rhs, name = ""):       _FFI.build_sdiv(@, lhs, rhs, name.cstring)
+  :fun ref exact_sdiv(lhs, rhs, name = ""): _FFI.build_exact_sdiv(@, lhs, rhs, name.cstring)
+  :fun ref fdiv(lhs, rhs, name = ""):       _FFI.build_fdiv(@, lhs, rhs, name.cstring)
+  :fun ref urem(lhs, rhs, name = ""):       _FFI.build_urem(@, lhs, rhs, name.cstring)
+  :fun ref srem(lhs, rhs, name = ""):       _FFI.build_srem(@, lhs, rhs, name.cstring)
+  :fun ref frem(lhs, rhs, name = ""):       _FFI.build_frem(@, lhs, rhs, name.cstring)
+  :fun ref shl(lhs, rhs, name = ""):        _FFI.build_shl(@, lhs, rhs, name.cstring)
+  :fun ref lshr(lhs, rhs, name = ""):       _FFI.build_lshr(@, lhs, rhs, name.cstring)
+  :fun ref ashr(lhs, rhs, name = ""):       _FFI.build_ashr(@, lhs, rhs, name.cstring)
+  :fun ref and(lhs, rhs, name = ""):        _FFI.build_and(@, lhs, rhs, name.cstring)
+  :fun ref or(lhs, rhs, name = ""):         _FFI.build_or(@, lhs, rhs, name.cstring)
+  :fun ref xor(lhs, rhs, name = ""):        _FFI.build_xor(@, lhs, rhs, name.cstring)
+  :fun ref neg(value, name = ""):           _FFI.build_neg(@, value, name.cstring)
+  :fun ref nsw_neg(value, name = ""):       _FFI.build_nsw_neg(@, value, name.cstring)
+  :fun ref fneg(value, name = ""):          _FFI.build_fneg(@, value, name.cstring)
+  :fun ref not(value, name = ""):           _FFI.build_not(@, value, name.cstring)
+
+  :fun ref malloc(type, name = "")
+    _FFI.build_malloc(@, type, name.cstring)
+
+  :fun ref array_malloc(type, size, name = "")
+    _FFI.build_array_malloc(@, type, size, name.cstring)
+
+  :fun ref memset(pointer, value, size, align)
+    _FFI.build_memset(@, pointer, value, size, align)
+
+  :fun ref memcpy(dst, dst_align, src, src_align, size)
+    _FFI.build_memcpy(@, dst, dst_align, src, src_align, size)
+
+  :fun ref memmove(dst, dst_align, src, src_align, size)
+    _FFI.build_memmove(@, dst, dst_align, src, src_align, size)
+
+  :fun ref alloca(type, name = "")
+    _FFI.build_alloca(@, type, name.cstring)
+
+  :fun ref array_alloca(type, size, name = "")
+    _FFI.build_array_alloca(@, type, size, name.cstring)
+
+  :fun ref free(pointer)
+    _FFI.build_free(@, pointer)
+
+  :fun ref load(type, pointer, name = "")
+    _FFI.build_load_2(@, type, pointer, name.cstring)
+
+  :fun ref store(value, pointer)
+    _FFI.build_store(@, value, pointer)
+
+  :fun ref gep(type, pointer, indices Array(LLVM.Value)'box, name = "")
+    _FFI.build_gep_2(@
+      type, pointer, indices.cpointer, indices.size.u32, name.cstring
+    )
+
+  :fun ref in_bounds_gep(
+    type, pointer, indices Array(LLVM.Value)'box, name = ""
+  )
+    _FFI.build_in_bounds_gep_2(@
+      type, pointer, indices.cpointer, indices.size.u32, name.cstring
+    )
+
+  // TODO: gep_with_no_wrap_flags
+
+  :fun ref struct_gep(type, pointer, index, name = "")
+    _FFI.build_struct_gep_2(@, type, pointer, index, name.cstring)
+
+  :fun ref trunc(value, dest_type, name = "")
+    _FFI.build_trunc(@, value, dest_type, name.cstring)
+
+  :fun ref z_ext(value, dest_type, name = "")
+    _FFI.build_z_ext(@, value, dest_type, name.cstring)
+
+  :fun ref s_ext(value, dest_type, name = "")
+    _FFI.build_s_ext(@, value, dest_type, name.cstring)
+
+  :fun ref fp_to_ui(value, dest_type, name = "")
+    _FFI.build_fp_to_ui(@, value, dest_type, name.cstring)
+
+  :fun ref fp_to_si(value, dest_type, name = "")
+    _FFI.build_fp_to_si(@, value, dest_type, name.cstring)
+
+  :fun ref ui_to_fp(value, dest_type, name = "")
+    _FFI.build_ui_to_fp(@, value, dest_type, name.cstring)
+
+  :fun ref si_to_fp(value, dest_type, name = "")
+    _FFI.build_si_to_fp(@, value, dest_type, name.cstring)
+
+  :fun ref fp_trunc(value, dest_type, name = "")
+    _FFI.build_fp_trunc(@, value, dest_type, name.cstring)
+
+  :fun ref ptr_to_int(value, dest_type, name = "")
+    _FFI.build_ptr_to_int(@, value, dest_type, name.cstring)
+
+  :fun ref int_to_ptr(value, dest_type, name = "")
+    _FFI.build_int_to_ptr(@, value, dest_type, name.cstring)
+
+  :fun ref bit_cast(value, dest_type, name = "")
+    _FFI.build_bit_cast(@, value, dest_type, name.cstring)
+
+  :fun ref addr_space_cast(value, dest_type, name = "")
+    _FFI.build_addr_space_cast(@, value, dest_type, name.cstring)
+
+  :fun ref z_ext_or_bit_cast(value, dest_type, name = "")
+    _FFI.build_z_ext_or_bit_cast(@, value, dest_type, name.cstring)
+
+  :fun ref s_ext_or_bit_cast(value, dest_type, name = "")
+    _FFI.build_s_ext_or_bit_cast(@, value, dest_type, name.cstring)
+
+  :fun ref trunc_or_bit_cast(value, dest_type, name = "")
+    _FFI.build_trunc_or_bit_cast(@, value, dest_type, name.cstring)
+
+  :fun ref pointer_cast(value, dest_type, name = "")
+    _FFI.build_pointer_cast(@, value, dest_type, name.cstring)
+
+  // TODO: int_cast
+  // TODO: fp_cast
+
+  :fun ref i_cmp(predicate, lhs, rhs, name = "")
+    _FFI.build_i_cmp(@, predicate, lhs, rhs, name.cstring)
+
+  :fun ref f_cmp(predicate, lhs, rhs, name = "")
+    _FFI.build_f_cmp(@, predicate, lhs, rhs, name.cstring)
+
+  // TODO: phi
+
+  :fun ref call(
+    function LLVM.Function
+    args Array(LLVM.Value)
+    name = ""
+  )
+    @virtual_call(function.type, function.as_value, args, name)
+
+  :fun ref virtual_call(
+    function_type LLVM.Type.Function
+    function LLVM.Value
+    args Array(LLVM.Value)
+    name = ""
+  )
+    _FFI.build_call_2(
+      @, function_type, function, args.cpointer, args.size.u32, name.cstring
+    )
+
+  // TODO: select
+  // TODO: va_arg
+
+  :fun ref vector_extract(vector, index, name = "")
+    _FFI.build_extract_element(@, vector, index, name.cstring)
+
+  :fun ref vector_insert(vector, element, index, name = "")
+    _FFI.build_insert_element(@, vector, element, index, name.cstring)
+
+  :fun ref vector_shuffle(vector_1, vector_2, mask, name = "")
+    _FFI.build_shuffle_vector(@, vector_1, vector_2, mask, name.cstring)
+
+  :fun ref extract_value(aggregate, index, name = "")
+    _FFI.build_extract_value(@, aggregate, index, name.cstring)
+
+  :fun ref insert_value(aggregate, element, index, name = "")
+    _FFI.build_insert_value(@, aggregate, element, index, name.cstring)
+
+  // TODO: freeze
+
+  :fun ref is_null(value, name = "")
+    _FFI.build_is_null(@, value, name.cstring)
+
+  :fun ref is_not_null(value, name = "")
+    _FFI.build_is_not_null(@, value, name.cstring)
+
+  :fun ref ptr_diff(element_type, lhs, rhs, name = "")
+    _FFI.build_ptr_diff_2(@, element_type, lhs, rhs, name.cstring)
+
+  :fun ref fence(ordering, single_thread = False, name = "")
+    _FFI.build_fence(@, ordering, _FFI.Bool.from(single_thread), name.cstring)
+
+  :fun ref atomic_rmw(op, pointer, value, ordering, single_thread = False)
+    _FFI.build_atomic_rmw(
+      @, op, pointer, value, ordering, _FFI.Bool.from(single_thread)
+    )
+
+  :fun ref atomic_cmp_xchg(
+    pointer, cmp, new, success_ordering, failure_ordering, single_thread = False
+  )
+    _FFI.build_atomic_cmp_xchg(
+      @, pointer, cmp, new
+      success_ordering, failure_ordering
+      _FFI.Bool.from(single_thread)
+    )

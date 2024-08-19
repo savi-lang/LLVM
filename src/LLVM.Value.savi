@@ -1,0 +1,98 @@
+:enum LLVM.Value.Kind
+  :member Argument 0
+  :member BasicBlock 1
+  :member MemoryUse 2
+  :member MemoryDef 3
+  :member MemoryPhi 4
+  :member Function 5
+  :member GlobalAlias 6
+  :member GlobalIFunc 7
+  :member GlobalVariable 8
+  :member BlockAddress 9
+  :member ConstantExpr 10
+  :member ConstantArray 11
+  :member ConstantStruct 12
+  :member ConstantVector 13
+  :member UndefValue 14
+  :member ConstantAggregateZero 15
+  :member ConstantDataArray 16
+  :member ConstantDataVector 17
+  :member ConstantInt 18
+  :member ConstantFP 19
+  :member ConstantPointerNull 20
+  :member ConstantTokenNone 21
+  :member MetadataAsValue 22
+  :member InlineAsm 23
+  :member Instruction 24
+  :member PoisonValue 25
+  :member ConstantTargetNone 26
+  :member ConstantPtrAuth 27
+
+:struct LLVM.Value
+  :let _ptr CPointer(None)
+  :new _from_ptr(@_ptr)
+
+  :fun kind LLVM.Value.Kind: _FFI.get_value_kind(@)
+  :fun type @->(LLVM.Type)
+    _FFI.Cast(LLVM.Type, @->(LLVM.Type)).pointer(_FFI.type_of(@))
+
+  :fun name String
+    size = USize.zero
+    cpointer = _FFI.get_value_name_2(@, stack_address_of_variable size)
+    String.val_from_cpointer(cpointer, size, size)
+
+  :fun into_string_space USize
+    string = _FFI.string(_FFI.print_value_to_string(@))
+    space = string.size
+    _FFI.dispose_message(string.cpointer)
+    space
+  :fun into_string(out String'ref) None
+    string = _FFI.string(_FFI.print_value_to_string(@))
+    string.into_string(out)
+    _FFI.dispose_message(string.cpointer)
+
+  :: Return true if this is a compile-time constant value.
+  :fun is_constant: _FFI.is_constant(@).bool
+
+  :: Return true if this is an undefined value.
+  :fun is_undef: _FFI.is_undef(@).bool
+
+  :: Return true if this is a poison value.
+  :fun is_poison: _FFI.is_poison(@).bool
+
+  :fun is_basic_block: _FFI.is_basic_block(@).bool
+  :fun as_basic_block! @->(LLVM.Block)
+    error! unless @is_basic_block
+    _FFI.Cast(LLVM.Block, @->(LLVM.Block)).pointer(LLVM.Block._from_ptr(@_ptr))
+
+:struct LLVM.Value.Global
+  :let _ptr CPointer(None)
+  :new _from_ptr(@_ptr)
+
+  :fun as_value @->(LLVM.Value)
+    _FFI.Cast(@, @->(LLVM.Value)).pointer(@)
+
+  :fun into_string_space: @as_value.into_string_space
+  :fun into_string(out String'ref): @as_value.into_string(out)
+
+  :fun name: @as_value.name
+
+  :fun global_type @->(LLVM.Type)
+    _FFI.Cast(LLVM.Type,  @->(LLVM.Type)).pointer(_FFI.global_get_value_type(@))
+
+:struct LLVM.Value.Global.Variable
+  :let _ptr CPointer(None)
+  :new _from_ptr(@_ptr)
+
+  :fun as_value @->(LLVM.Value)
+    _FFI.Cast(@, @->(LLVM.Value)).pointer(@)
+  :fun as_global @->(LLVM.Value.Global)
+    _FFI.Cast(@, @->(LLVM.Value.Global)).pointer(@)
+
+  :fun into_string_space: @as_value.into_string_space
+  :fun into_string(out String'ref): @as_value.into_string(out)
+
+  :fun name: @as_value.name
+
+  :fun ref "initializer="(value LLVM.Value'box)
+    _FFI.set_initializer(@, value)

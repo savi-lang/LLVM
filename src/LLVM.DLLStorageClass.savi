@@ -1,0 +1,8 @@
+:enum LLVM.DLLStorageClass
+  :member Default 0
+
+  :: Function to be imported from DLL.
+  :member DLLImport 1
+
+  :: Function to be accessible from DLL.
+  :member DLLExport 2

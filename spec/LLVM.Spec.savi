@@ -1,0 +1,6 @@
+:class LLVM.Spec
+  :is Spec
+  :const describes: "LLVM"
+
+  :it "has placeholder tests which do nothing"
+    llvm = LLVM.new

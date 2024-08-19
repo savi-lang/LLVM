@@ -1,0 +1,6 @@
+:enum LLVM.ThreadLocalMode
+  :member NotThreadLocal 0
+  :member GeneralDynamic 1
+  :member LocalDynamic 2
+  :member InitialExec 3
+  :member LocalExec 4

@@ -1,0 +1,118 @@
+:class LLVM.Const
+  :let _ptr _FFI.ContextPtr
+  :let _types LLVM.Types
+  :new _for_context_ptr(@_ptr, @_types)
+
+  :fun i1(value Bool)
+    _FFI.const_int(
+      _FFI.Cast(LLVM.Type'box, LLVM.Type.Integer'box).pointer(@_types.i1)
+      value.u64
+      _FFI.Bool.False
+    )
+
+  :fun i8(value I8)
+    _FFI.const_int(
+      _FFI.Cast(LLVM.Type'box, LLVM.Type.Integer'box).pointer(@_types.i8)
+      value.u64
+      _FFI.Bool.False
+    )
+
+  :fun i16(value I16)
+    _FFI.const_int(
+      _FFI.Cast(LLVM.Type'box, LLVM.Type.Integer'box).pointer(@_types.i16)
+      value.u64
+      _FFI.Bool.False
+    )
+
+  :fun i32(value I32)
+    _FFI.const_int(
+      _FFI.Cast(LLVM.Type'box, LLVM.Type.Integer'box).pointer(@_types.i32)
+      value.u64
+      _FFI.Bool.False
+    )
+
+  :fun i64(value I64)
+    _FFI.const_int(
+      _FFI.Cast(LLVM.Type'box, LLVM.Type.Integer'box).pointer(@_types.i64)
+      value.u64
+      _FFI.Bool.False
+    )
+
+  // TODO: :fun i128(value I128) (with _FFI.const_int_of_arbitrary_precision)
+  // TODO: :fun f16(value F16) (with ???)
+  // TODO: :fun bf16(value F16) (with ???)
+
+  :fun f32(value F32)
+    _FFI.const_real(
+      _FFI.Cast(LLVM.Type'box, LLVM.Type.FloatingPoint'box).pointer(@_types.f32)
+      value.f64
+    )
+
+  :fun f64(value F64)
+    _FFI.const_real(
+      _FFI.Cast(LLVM.Type'box, LLVM.Type.FloatingPoint'box).pointer(@_types.f64)
+      value.f64
+    )
+
+  :fun i1_array(values Array(Bool))
+    const_values Array(LLVM.Value'box) = []
+    values.each -> (value | const_values << @i1(value))
+    _FFI.const_array_2(
+      @_types.i1, const_values.cpointer, const_values.size.u64
+    )
+
+  :fun i8_array(values Array(I8))
+    const_values Array(LLVM.Value'box) = []
+    values.each -> (value | const_values << @i8(value))
+    _FFI.const_array_2(
+      @_types.i8, const_values.cpointer, const_values.size.u64
+    )
+
+  :fun i16_array(values Array(I16))
+    const_values Array(LLVM.Value'box) = []
+    values.each -> (value | const_values << @i16(value))
+    _FFI.const_array_2(
+      @_types.i16, const_values.cpointer, const_values.size.u64
+    )
+
+  :fun i32_array(values Array(I32))
+    const_values Array(LLVM.Value'box) = []
+    values.each -> (value | const_values << @i32(value))
+    _FFI.const_array_2(
+      @_types.i32, const_values.cpointer, const_values.size.u64
+    )
+
+  :fun i64_array(values Array(I64))
+    const_values Array(LLVM.Value'box) = []
+    values.each -> (value | const_values << @i64(value))
+    _FFI.const_array_2(
+      @_types.i64, const_values.cpointer, const_values.size.u64
+    )
+
+  // TODO: i128_array
+  // TODO: f16_array
+  // TODO: bf16_array
+
+  :fun f32_array(values Array(F32))
+    const_values Array(LLVM.Value'box) = []
+    values.each -> (value | const_values << @f32(value))
+    _FFI.const_array_2(
+      @_types.f32, const_values.cpointer, const_values.size.u64
+    )
+
+  :fun f64_array(values Array(F64))
+    const_values Array(LLVM.Value'box) = []
+    values.each -> (value | const_values << @f64(value))
+    _FFI.const_array_2(
+      @_types.f64, const_values.cpointer, const_values.size.u64
+    )
+
+  :fun string(value String)
+    _FFI.const_string_in_context(
+      @_ptr, value.cpointer, value.size.u32, _FFI.Bool.False
+    )
+
+  :fun bytes(value Bytes)
+    _FFI.const_string_in_context(
+      @_ptr, value.cpointer, value.size.u32, _FFI.Bool.True
+    )
