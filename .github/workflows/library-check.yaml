@@ -27,16 +27,46 @@ jobs:
         include:
           - { os: ubuntu-latest, shell: bash }
           - { os: macos-latest, shell: bash }
-          - { os: windows-latest, shell: 'wsl-bash {0}' }
+          # - { os: windows-latest, shell: 'wsl-bash {0}' } # TODO: fix savi compiler crash here during `binary` pass
     runs-on: ${{ matrix.os }}
     defaults:
       run:
         shell: ${{ matrix.shell }}
+    env:
+      LLVM_VERSION: 18 # (must also update Windows step below)
     steps:
       - uses: actions/checkout@v2
       - uses: savi-lang/action-install@v1
+
+      - name: Install LLVM (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh $LLVM_VERSION
+          sudo ln -s "/usr/lib/llvm-$LLVM_VERSION/lib/libLLVM-$LLVM_VERSION.so" "/usr/lib/llvm-$LLVM_VERSION/lib/libLLVM.so"
+          echo LIBRARY_PATH="/usr/lib/llvm-$LLVM_VERSION/lib" >> $GITHUB_ENV
+      - name: Install LLVM (MacOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install llvm@$LLVM_VERSION
+          echo LIBRARY_PATH="/opt/homebrew/opt/llvm/lib" >> $GITHUB_ENV
+      - name: Install LLVM (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          set -x
+          curl -o llvm.tar.xz -L "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/clang+llvm-18.1.8-x86_64-pc-windows-msvc.tar.xz"
+          ls -la ./llvm.tar.xz
+          mkdir -p ~/llvm
+          sudo apt install -y xz-utils
+          tar -xvf llvm.tar.xz -C ~/llvm --strip-components=1 | grep lib
+          echo "export LIBRARY_PATH=$HOME/llvm/lib" >> ~/.bashrc
+
       - run: savi deps update --for spec
-      - run: savi run spec ${{ runner.os == 'Windows' && '--cross-compile=x86_64-unknown-windows-msvc' || '' }}
+      - run: |
+          set -x
+          env | grep LIBRARY_PATH
+          savi run spec ${{ runner.os == 'Windows' && '--cross-compile=x86_64-unknown-windows-msvc' || '' }}
 
   # Check formatting of all files in the repository.
   format:
