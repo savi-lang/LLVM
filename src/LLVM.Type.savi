@@ -23,7 +23,7 @@
 
   :fun is_void: @ == LLVM.Type.Kind.Void
   :fun is_integer: @ == LLVM.Type.Kind.Integer
-  :fun is_float: @ == LLVM.Type.Kind.BFloat || (
+  :fun is_real: @ == LLVM.Type.Kind.BFloat || (
     @ <= LLVM.Type.Kind.PPC_FP128 && @ >= LLVM.Type.Kind.Half
   )
   :fun is_array: @ == LLVM.Type.Kind.Array
@@ -37,6 +37,9 @@
   :new _from_ptr(@_ptr)
 
   :fun kind LLVM.Type.Kind: _FFI.get_type_kind(@)
+
+  :is Equatable(@'box)
+  :fun "=="(other @'box): @_ptr.address == other._ptr.address
 
   :fun into_string_space USize
     string = _FFI.string(_FFI.print_type_to_string(@))
@@ -52,9 +55,9 @@
     error! unless @kind.is_integer
     _FFI.Cast(@, @->(LLVM.Type.Integer)).pointer(@)
 
-  :fun as_floating_point_type! @->(LLVM.Type.FloatingPoint)
-    error! unless @kind.is_floating_point
-    _FFI.Cast(@, @->(LLVM.Type.FloatingPoint)).pointer(@)
+  :fun as_real_type! @->(LLVM.Type.Real)
+    error! unless @kind.is_real
+    _FFI.Cast(@, @->(LLVM.Type.Real)).pointer(@)
 
   :fun as_array_type! @->(LLVM.Type.Array)
     error! unless @kind.is_array
@@ -84,16 +87,22 @@
   :fun into_string_space: @as_type.into_string_space
   :fun into_string(out String'ref): @as_type.into_string(out)
 
+  :is Equatable(@'box)
+  :fun "=="(other @'box): @_ptr.address == other._ptr.address
+
   :: Get the bit width of the integer type.
   :fun bit_width: _FFI.get_int_type_width(@)
 
-:struct LLVM.Type.FloatingPoint
+:struct LLVM.Type.Real
   :let _ptr CPointer(None)
   :new _from_ptr(@_ptr)
   :fun as_type
     _FFI.Cast(LLVM.Type, @->(LLVM.Type)).pointer(LLVM.Type._from_ptr(@_ptr))
   :fun into_string_space: @as_type.into_string_space
   :fun into_string(out String'ref): @as_type.into_string(out)
+
+  :is Equatable(@'box)
+  :fun "=="(other @'box): @_ptr.address == other._ptr.address
 
 :struct LLVM.Type.Array
   :let _ptr CPointer(None)
@@ -102,6 +111,9 @@
     _FFI.Cast(LLVM.Type, @->(LLVM.Type)).pointer(LLVM.Type._from_ptr(@_ptr))
   :fun into_string_space: @as_type.into_string_space
   :fun into_string(out String'ref): @as_type.into_string(out)
+
+  :is Equatable(@'box)
+  :fun "=="(other @'box): @_ptr.address == other._ptr.address
 
   :: Get the type of elements in the array type.
   :fun element_type @->(LLVM.Type)
@@ -118,6 +130,9 @@
   :fun into_string_space: @as_type.into_string_space
   :fun into_string(out String'ref): @as_type.into_string(out)
 
+  :is Equatable(@'box)
+  :fun "=="(other @'box): @_ptr.address == other._ptr.address
+
   :: Get the type of elements in the vector type.
   :fun element_type @->(LLVM.Type)
     _FFI.Cast(LLVM.Type'box, @->(LLVM.Type)).pointer(_FFI.get_vector_element_type(@))
@@ -133,6 +148,9 @@
   :fun into_string_space: @as_type.into_string_space
   :fun into_string(out String'ref): @as_type.into_string(out)
 
+  :is Equatable(@'box)
+  :fun "=="(other @'box): @_ptr.address == other._ptr.address
+
   :: Get the address space of the pointer type.
   :fun address_space U32: _FFI.get_pointer_address_space(@)
 
@@ -143,6 +161,9 @@
     _FFI.Cast(LLVM.Type, @->(LLVM.Type)).pointer(LLVM.Type._from_ptr(@_ptr))
   :fun into_string_space: @as_type.into_string_space
   :fun into_string(out String'ref): @as_type.into_string(out)
+
+  :is Equatable(@'box)
+  :fun "=="(other @'box): @_ptr.address == other._ptr.address
 
   :: Get the name of the struct type.
   :fun name: _FFI.string(_FFI.get_struct_name(@))
@@ -186,6 +207,9 @@
     _FFI.Cast(LLVM.Type, @->(LLVM.Type)).pointer(LLVM.Type._from_ptr(@_ptr))
   :fun into_string_space: @as_type.into_string_space
   :fun into_string(out String'ref): @as_type.into_string(out)
+
+  :is Equatable(@'box)
+  :fun "=="(other @'box): @_ptr.address == other._ptr.address
 
   :: Get the return type of the function type.
   :fun return_type @->(LLVM.Type)
@@ -238,10 +262,10 @@
     @i32 = _FFI.Cast(LLVM.Type.Integer, LLVM.Type).pointer(_FFI.int32_type_in_context(@_ptr))
     @i64 = _FFI.Cast(LLVM.Type.Integer, LLVM.Type).pointer(_FFI.int64_type_in_context(@_ptr))
     @i128 = _FFI.Cast(LLVM.Type.Integer, LLVM.Type).pointer(_FFI.int128_type_in_context(@_ptr))
-    @f16 = _FFI.Cast(LLVM.Type.FloatingPoint, LLVM.Type).pointer(_FFI.half_type_in_context(@_ptr))
-    @bf16 = _FFI.Cast(LLVM.Type.FloatingPoint, LLVM.Type).pointer(_FFI.b_float_type_in_context(@_ptr))
-    @f32 = _FFI.Cast(LLVM.Type.FloatingPoint, LLVM.Type).pointer(_FFI.float_type_in_context(@_ptr))
-    @f64 = _FFI.Cast(LLVM.Type.FloatingPoint, LLVM.Type).pointer(_FFI.double_type_in_context(@_ptr))
+    @f16 = _FFI.Cast(LLVM.Type.Real, LLVM.Type).pointer(_FFI.half_type_in_context(@_ptr))
+    @bf16 = _FFI.Cast(LLVM.Type.Real, LLVM.Type).pointer(_FFI.b_float_type_in_context(@_ptr))
+    @f32 = _FFI.Cast(LLVM.Type.Real, LLVM.Type).pointer(_FFI.float_type_in_context(@_ptr))
+    @f64 = _FFI.Cast(LLVM.Type.Real, LLVM.Type).pointer(_FFI.double_type_in_context(@_ptr))
 
   :fun ref array(element_type LLVM.Type'box, size USize)
     _FFI.array_type2(element_type, size.u64)
@@ -264,3 +288,10 @@
   :fun ref struct(name String)
     _FFI.struct_create_named(@_ptr, name.cstring)
 
+  :fun ref literal_struct(element_types Array(LLVM.Type'box), packed = False)
+    _FFI.struct_type_in_context(
+      @_ptr
+      element_types.cpointer
+      element_types.size.u32
+      _FFI.Bool.from(packed)
+    )

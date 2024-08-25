@@ -41,6 +41,7 @@
     cpointer = _FFI.get_value_name_2(@, stack_address_of_variable size)
     String.val_from_cpointer(cpointer, size, size)
 
+  :is IntoString
   :fun into_string_space USize
     string = _FFI.string(_FFI.print_value_to_string(@))
     space = string.size
