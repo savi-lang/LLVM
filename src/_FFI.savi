@@ -1,4 +1,29 @@
-:ffi_link_lib "LLVM-18.1.8"
+:ffi_link_lib "LLVMCore"
+  :prefer static
+
+:ffi_link_lib "LLVMSupport"
+  :prefer static
+
+:ffi_link_lib "LLVMRemarks"
+  :prefer static
+
+:ffi_link_lib "LLVMDemangle"
+  :prefer static
+
+:ffi_link_lib "LLVMBitstreamReader"
+  :prefer static
+
+:ffi_link_lib "LLVMBinaryFormat"
+  :prefer static
+
+:ffi_link_lib "LLVMTargetParser"
+  :prefer static
+
+:ffi_link_lib "curses"
+
+:ffi_link_cpp_files (
+  "./_FFI.cpp"
+)
 
 :module _FFI.Cast(A, B)
   :: An FFI-only utility function for bit-casting type A to B.

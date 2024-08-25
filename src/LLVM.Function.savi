@@ -30,12 +30,12 @@
   :: Walk through each block in the function to return the block at the
   :: given index. Raises an error if there are too few blocks to reach it.
   :fun "[]!"(index USize) @->(LLVM.Block)
-    block = _FFI.Cast((LLVM.Block), @->(LLVM.Block)).pointer(
+    block = _FFI.Cast(LLVM.Block, @->(LLVM.Block)).pointer(
       _FFI.get_first_basic_block(@)
     )
     while index.is_nonzero (
       error! if block._ptr.is_null
-      index -= 1, block = _FFI.Cast((LLVM.Block), @->(LLVM.Block)).pointer(
+      index -= 1, block = _FFI.Cast(LLVM.Block, @->(LLVM.Block)).pointer(
         _FFI.get_next_basic_block(block)
       )
     )
@@ -86,7 +86,7 @@
     )
     return unless block._ptr.is_not_null
     distance = 0
-    while (index > from) (
+    while index > from (
       index -= 1, block = _FFI.Cast(LLVM.Block, @->(LLVM.Block)).pointer(
         _FFI.get_previous_basic_block(block)
       )
