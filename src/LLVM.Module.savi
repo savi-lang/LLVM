@@ -13,6 +13,17 @@
     g.initializer = value
     g
 
+  :is IntoString
+  :fun into_string_space USize
+    string = _FFI.string(_FFI.print_module_to_string(@_ptr))
+    space = string.size
+    _FFI.dispose_message(string.cpointer)
+    space
+  :fun into_string(out String'ref) None
+    string = _FFI.string(_FFI.print_module_to_string(@_ptr))
+    string.into_string(out)
+    _FFI.dispose_message(string.cpointer)
+
   :fun print_to_file!(filename String) None
     error = CPointer(U8).null
     is_error = _FFI.print_module_to_file(

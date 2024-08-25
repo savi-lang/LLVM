@@ -1,0 +1,140 @@
+:class LLVM.Types.Spec
+  :is Spec
+  :const describes: "LLVM.Types"
+
+  :it "has various pre-instantiated types, each equatable with itself"
+    llvm = LLVM.new
+
+    assert: "\(llvm.types.void)" == "void"
+    assert: "\(llvm.types.ptr)" == "ptr"
+    assert: "\(llvm.types.i1)" == "i1"
+    assert: "\(llvm.types.i8)" == "i8"
+    assert: "\(llvm.types.i16)" == "i16"
+    assert: "\(llvm.types.i32)" == "i32"
+    assert: "\(llvm.types.i64)" == "i64"
+    assert: "\(llvm.types.i128)" == "i128"
+    assert: "\(llvm.types.f16)" == "half"
+    assert: "\(llvm.types.bf16)" == "bfloat"
+    assert: "\(llvm.types.f32)" == "float"
+    assert: "\(llvm.types.f64)" == "double"
+
+    assert: llvm.types.void == llvm.types.void
+    assert: llvm.types.ptr == llvm.types.ptr
+    assert: llvm.types.i1 == llvm.types.i1
+    assert: llvm.types.i8 == llvm.types.i8
+    assert: llvm.types.i16 == llvm.types.i16
+    assert: llvm.types.i32 == llvm.types.i32
+    assert: llvm.types.i64 == llvm.types.i64
+    assert: llvm.types.i128 == llvm.types.i128
+    assert: llvm.types.f16 == llvm.types.f16
+    assert: llvm.types.bf16 == llvm.types.bf16
+    assert: llvm.types.f32 == llvm.types.f32
+    assert: llvm.types.f64 == llvm.types.f64
+
+    assert: llvm.types.i32 != llvm.types.f32
+
+    assert: llvm.types.void.kind.is_void
+    assert: llvm.types.ptr.kind.is_pointer
+    assert: llvm.types.i1.kind.is_integer
+    assert: llvm.types.i8.kind.is_integer
+    assert: llvm.types.i16.kind.is_integer
+    assert: llvm.types.i32.kind.is_integer
+    assert: llvm.types.i64.kind.is_integer
+    assert: llvm.types.i128.kind.is_integer
+    assert: llvm.types.f16.kind.is_real
+    assert: llvm.types.bf16.kind.is_real
+    assert: llvm.types.f32.kind.is_real
+    assert: llvm.types.f64.kind.is_real
+
+    assert: llvm.types.i1.as_integer_type!.bit_width == 1
+    assert: llvm.types.i8.as_integer_type!.bit_width == 8
+    assert: llvm.types.i16.as_integer_type!.bit_width == 16
+    assert: llvm.types.i32.as_integer_type!.bit_width == 32
+    assert: llvm.types.i64.as_integer_type!.bit_width == 64
+    assert: llvm.types.i128.as_integer_type!.bit_width == 128
+
+  :it "can create various composite types, which are structurally equatable"
+    llvm = LLVM.new
+    types = llvm.types
+    void = types.void
+    i64 = llvm.types.i64
+    i32 = llvm.types.i32
+    i8 = llvm.types.i8
+
+    assert: "\(types.array(i64, 10))" == "[10 x i64]"
+    assert: "\(types.vector(i64, 4))" == "<4 x i64>"
+    assert: "\(types.literal_struct([i64, i8]))" == "{ i64, i8 }"
+    assert: "\(types.literal_struct([i32]).set_body([i64, i8]))" == "{ i64, i8 }"
+    assert: "\(types.function(i32))" == "i32 ()"
+    assert: "\(types.function(i32, [i64, i8]))" == "i32 (i64, i8)"
+    assert: "\(types.function(i32, [i64, i8], True))" == "i32 (i64, i8, ...)"
+
+    assert: types.array(i64, 10) == types.array(i64, 10)
+    assert: types.array(i64, 10) != types.array(i64, 9)
+    assert: types.vector(i64, 4) == types.vector(i64, 4)
+    assert: types.vector(i64, 4) != types.vector(i64, 3)
+    assert: types.literal_struct([i64, i8]) == types.literal_struct([i64, i8])
+    assert: types.function(i32, [i64, i8]) == types.function(i32, [i64, i8])
+
+    a1 = types.array(i64, 10)
+    a2 = types.array(i32, 9)
+
+    assert: a1.element_type == i64
+    assert: a2.element_type == i32
+    assert: a1.size == 10
+    assert: a2.size == 9
+
+    fn1 = types.function(i32)
+    fn2 = types.function(void, [i64, i8])
+    fn3 = types.function(i32, [i64, i8], True)
+
+    assert: fn1.return_type == i32
+    assert: fn2.return_type == void
+    assert: fn3.return_type == i32
+    assert: fn1.param_types_size == 0
+    assert: fn1.param_types.size == 0
+    assert: fn2.param_types_size == 2
+    assert: fn2.param_types.size == 2
+    assert: fn2.param_types[0]! == i64
+    assert: fn2.param_types[1]! == i8
+    assert: fn1.is_variadic == False
+    assert: fn2.is_variadic == False
+    assert: fn3.is_variadic
+
+  :it "can create named structs, which are nominally equatable"
+    llvm = LLVM.new
+
+    foo = llvm.types.struct("foo")
+    bar = llvm.types.struct("bar").set_body([llvm.types.i64, llvm.types.i8])
+    baz = llvm.types.struct("baz").set_body([llvm.types.i64, llvm.types.i8], True)
+
+    assert: "\(foo)" == "%foo = type opaque"
+    assert: "\(bar)" == "%bar = type { i64, i8 }"
+    assert: "\(baz)" == "%baz = type <{ i64, i8 }>"
+
+    assert: foo.element_types_size == 0
+    assert: foo.element_types.size == 0
+    assert: bar.element_types_size == 2
+    assert: bar.element_types.size == 2
+    assert: bar.element_types[0]! == llvm.types.i64
+    assert: bar.element_types[1]! == llvm.types.i8
+
+    assert: foo.is_packed == False
+    assert: bar.is_packed == False
+    assert: baz.is_packed
+
+    assert: foo.is_opaque
+    assert: bar.is_opaque == False
+    assert: baz.is_opaque == False
+
+    assert: foo.is_literal == False
+    assert: bar.is_literal == False
+    assert: baz.is_literal == False
+    assert: llvm.types.literal_struct([llvm.types.i64, llvm.types.i8]).is_literal
+
+    s1 = llvm.types.struct("s").set_body([llvm.types.i64, llvm.types.i8])
+    s2 = llvm.types.struct("s").set_body([llvm.types.i64, llvm.types.i8])
+    assert: "\(s1)" == "%s = type { i64, i8 }"
+    assert: "\(s2)" == "%s.0 = type { i64, i8 }"
+    assert: s1 == s1
+    assert: s1 != s2

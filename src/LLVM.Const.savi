@@ -44,13 +44,13 @@
 
   :fun f32(value F32)
     _FFI.const_real(
-      _FFI.Cast(LLVM.Type'box, LLVM.Type.FloatingPoint'box).pointer(@_types.f32)
+      _FFI.Cast(LLVM.Type'box, LLVM.Type.Real'box).pointer(@_types.f32)
       value.f64
     )
 
   :fun f64(value F64)
     _FFI.const_real(
-      _FFI.Cast(LLVM.Type'box, LLVM.Type.FloatingPoint'box).pointer(@_types.f64)
+      _FFI.Cast(LLVM.Type'box, LLVM.Type.Real'box).pointer(@_types.f64)
       value.f64
     )
 

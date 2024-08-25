@@ -2,5 +2,34 @@
   :is Spec
   :const describes: "LLVM"
 
-  :it "has placeholder tests which do nothing"
+  :it "can build a basic program"
     llvm = LLVM.new
+    module = llvm.create_module("hello")
+
+    puts = module.add_function("puts"
+      llvm.types.function(llvm.types.i32, [llvm.types.ptr])
+    )
+    hello_world = module.add_global_with_value(
+      llvm.const.string("Hello, world!")
+    ).as_value
+
+    main = module.add_function("main"
+      llvm.types.function(llvm.types.i32)
+    )
+    llvm.build.at(main.add_block("entry"))
+    llvm.build.call(puts, [hello_world])
+    llvm.build.ret(llvm.const.i32(0))
+
+    assert: "\(module)" == "; ModuleID = 'hello'\n\(<<<
+      source_filename = "hello"
+
+      @0 = global [14 x i8] c"Hello, world!\00"
+
+      declare i32 @puts(ptr)
+
+      define i32 @main() {
+      entry:
+        %0 = call i32 @puts(ptr @0)
+        ret i32 0
+      }
+    >>>)\n"

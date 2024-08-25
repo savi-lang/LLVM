@@ -433,31 +433,31 @@
   //
 
   :: Obtain a 16-bit floating point type from a context.
-  :ffi half_type_in_context(context _FFI.ContextPtr) LLVM.Type.FloatingPoint
+  :ffi half_type_in_context(context _FFI.ContextPtr) LLVM.Type.Real
     :foreign_name LLVMHalfTypeInContext
 
   :: Obtain a 16-bit brain floating point type from a context.
-  :ffi b_float_type_in_context(context _FFI.ContextPtr) LLVM.Type.FloatingPoint
+  :ffi b_float_type_in_context(context _FFI.ContextPtr) LLVM.Type.Real
     :foreign_name LLVMBFloatTypeInContext
 
   :: Obtain a 32-bit floating point type from a context.
-  :ffi float_type_in_context(context _FFI.ContextPtr) LLVM.Type.FloatingPoint
+  :ffi float_type_in_context(context _FFI.ContextPtr) LLVM.Type.Real
     :foreign_name LLVMFloatTypeInContext
 
   :: Obtain a 64-bit floating point type from a context.
-  :ffi double_type_in_context(context _FFI.ContextPtr) LLVM.Type.FloatingPoint
+  :ffi double_type_in_context(context _FFI.ContextPtr) LLVM.Type.Real
     :foreign_name LLVMDoubleTypeInContext
 
   :: Obtain a 80-bit floating point type (X87) from a context.
-  :ffi x86fp80_type_in_context(context _FFI.ContextPtr) LLVM.Type.FloatingPoint
+  :ffi x86fp80_type_in_context(context _FFI.ContextPtr) LLVM.Type.Real
     :foreign_name LLVMX86FP80TypeInContext
 
   :: Obtain a 128-bit floating point type (112-bit mantissa) from a context.
-  :ffi fp128_type_in_context(context _FFI.ContextPtr) LLVM.Type.FloatingPoint
+  :ffi fp128_type_in_context(context _FFI.ContextPtr) LLVM.Type.Real
     :foreign_name LLVMFP128TypeInContext
 
   :: Obtain a 128-bit floating point type (two 64-bits) from a context.
-  :ffi ppcfp128_type_in_context(context _FFI.ContextPtr) LLVM.Type.FloatingPoint
+  :ffi ppcfp128_type_in_context(context _FFI.ContextPtr) LLVM.Type.Real
     :foreign_name LLVMPPCFP128TypeInContext
 
   ///
@@ -871,7 +871,7 @@
 
   :: Obtain a constant value referring to a double floating point value.
   :ffi const_real(
-    real_type LLVM.Type.FloatingPoint'box
+    real_type LLVM.Type.Real'box
     value F64
   ) LLVM.Value
     :foreign_name LLVMConstReal
